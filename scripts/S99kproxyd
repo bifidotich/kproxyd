@@ -1,0 +1,48 @@
+#!/bin/sh
+# Entware init-скрипт kproxyd: start | stop | restart | status | check
+BIN=/opt/sbin/kproxyd
+CFG=/opt/etc/kproxyd/config.json
+LOG=/opt/var/log/kproxyd.log
+PIDF=/opt/var/run/kproxyd.pid
+# Потолок кучи Go: при приближении к нему сборщик мусора работает агрессивнее.
+export GOMEMLIMIT=40MiB
+export GOGC=50
+
+# жив ли процесс: pid существует, это именно kproxyd и он не зомби
+running() {
+    [ -f "$PIDF" ] || return 1
+    p=$(cat "$PIDF")
+    [ -r "/proc/$p/cmdline" ] || return 1
+    grep -q kproxyd "/proc/$p/cmdline" 2>/dev/null || return 1
+    ! grep -q ') Z ' "/proc/$p/stat" 2>/dev/null
+}
+
+start() {
+    running && { echo "kproxyd уже запущен"; return 0; }
+    mkdir -p /opt/var/log /opt/var/run
+    # простая ротация: лог больше 512 КБ начинаем заново
+    [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 524288 ] && mv "$LOG" "$LOG.1"
+    "$BIN" -config "$CFG" >> "$LOG" 2>&1 &
+    echo $! > "$PIDF"
+    sleep 1
+    if running; then echo "kproxyd запущен"; else echo "kproxyd не стартовал, см. $LOG"; return 1; fi
+}
+
+stop() {
+    running || { rm -f "$PIDF"; echo "kproxyd не запущен"; return 0; }
+    kill "$(cat "$PIDF")"
+    for i in 1 2 3 4 5; do running || break; sleep 1; done
+    running && kill -9 "$(cat "$PIDF")" 2>/dev/null
+    rm -f "$PIDF"
+    echo "kproxyd остановлен"
+}
+
+case "$1" in
+    start) start ;;
+    stop) stop ;;
+    restart) stop; start ;;
+    status) if running; then echo "работает, pid $(cat "$PIDF")"; else echo "не работает"; exit 1; fi ;;
+    # для cron: поднять, если процесс умер
+    check) running || { echo "$(date) kproxyd не работал, перезапуск" >> "$LOG"; start >/dev/null; } ;;
+    *) echo "Использование: $0 {start|stop|restart|status|check}"; exit 1 ;;
+esac

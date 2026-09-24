@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kproxyd</title>
+<style>
+:root{
+  --bg:#EEF1F3; --surface:#FFFFFF; --ink:#17212B; --muted:#5B6B7A; --line:#D3DAE0;
+  --ok:#1E9E62; --warn:#C7851A; --bad:#C23B2A; --accent:#2256A8; --rail:#B7C2CC;
+  --radius-lg:14px; --radius-sm:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#12181E; --surface:#1B232B; --ink:#E3E9EE; --muted:#93A3B1; --line:#2C3843;
+    --ok:#34C483; --warn:#E3A640; --bad:#E86A57; --accent:#6C9BEA; --rail:#3A4853; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;}
+.num{font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-sm);padding:7px 12px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 9px;width:100%}
+textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;min-height:320px}
+label{display:block;margin:10px 0 4px;color:var(--muted);font-size:13px}
+.wrap{max-width:1080px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+header h1{font-size:22px;margin:0;letter-spacing:-.01em}
+header .sum{color:var(--muted);font-size:14px}
+header .act{display:flex;gap:8px}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+nav button{border:none;background:none;border-bottom:2px solid transparent;border-radius:0;padding:9px 12px;color:var(--muted)}
+nav button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--ink)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px}
+.card h2{font-size:17px;margin:0}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.meta{color:var(--muted);font-size:13px}
+.tag{display:inline-block;font-size:12px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.err{color:var(--bad);font-size:13px}
+.okc{color:var(--ok)}
+/* трасса группы: выходы как станции на одной линии, активная подсвечена */
+.track{list-style:none;margin:14px 0 10px;padding:0;position:relative}
+.track li{position:relative;padding:6px 0 6px 28px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+.track li::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--rail)}
+.track li:first-child::before{top:50%}
+.track li:last-child::before{bottom:50%}
+.track li:only-child::before{display:none}
+.stop{position:absolute;left:2px;top:50%;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--rail)}
+.track li.up .stop{border-color:var(--ok)}
+.track li.down .stop{border-color:var(--bad)}
+.track li.active .stop{background:var(--ok);border-color:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 22%,transparent)}
+.track li.active::before{background:var(--ok)}
+.track li.active .oname{font-weight:600}
+.track .oname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track button{padding:3px 9px;font-size:13px}
+.track .pin{border-color:var(--accent);color:var(--accent)}
+.headline{font-size:13px;color:var(--muted);margin-top:4px}
+.headline b{color:var(--ink);font-weight:600}
+.headline.none b{color:var(--bad)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--rail);margin-right:6px;vertical-align:1px}
+.dot.up{background:var(--ok)} .dot.down{background:var(--bad)} .dot.off{background:var(--rail)}
+svg.spark{width:100%;height:36px;display:block;margin:10px 0 4px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px;margin-top:8px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;overflow-wrap:anywhere}
+.log{list-style:none;padding:0;margin:0;font-size:14px}
+.log li{padding:8px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:76px 1fr;gap:10px}
+.log time{color:var(--muted)}
+.log .warn{color:var(--warn)} .log .error{color:var(--bad)}
+.empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--radius-lg)}
+.empty button{margin-top:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.chk{display:flex;gap:8px;align-items:center;margin:6px 0}
+.chk input{width:auto}
+.members li{display:flex;gap:6px;align-items:center;padding:4px 0}
+.members{list-style:none;padding:0;margin:0}
+.members input{width:auto;margin:0}
+.members span{flex:1}
+.members button{padding:2px 8px}
+dialog{border:none;border-radius:var(--radius-lg);padding:0;background:var(--surface);color:var(--ink);width:min(560px,94vw);max-height:90vh}
+dialog::backdrop{background:rgb(0 0 0 / .45)}
+dialog form{padding:18px;overflow:auto;max-height:90vh}
+dialog h3{margin:0 0 6px}
+.foot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.foot .left{margin-right:auto}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:9px 14px;border-radius:var(--radius-sm);font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
+#toast.show{opacity:1}
+.hint{font-size:13px;color:var(--muted);margin:6px 0 0}
+@media (max-width:560px){ .two{grid-template-columns:1fr} header .act{width:100%} header .act button{flex:1} }
+@media (prefers-reduced-motion:reduce){ #toast{transition:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>kproxyd</h1>
+      <div class="sum" id="sum">загрузка…</div>
+    </div>
+    <div class="act">
+      <button id="bProbe">Проверить выходы</button>
+      <button id="bSync">Синхронизировать с Keenetic</button>
+    </div>
+  </header>
+  <nav role="tablist">
+    <button role="tab" data-tab="groups" aria-selected="true">Группы</button>
+    <button role="tab" data-tab="outlets" aria-selected="false">Выходы</button>
+    <button role="tab" data-tab="log" aria-selected="false">Журнал</button>
+    <button role="tab" data-tab="settings" aria-selected="false">Настройки</button>
+  </nav>
+  <section id="tab-groups"></section>
+  <section id="tab-outlets" hidden></section>
+  <section id="tab-log" hidden></section>
+  <section id="tab-settings" hidden></section>
+</div>
+
+<dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
+<div id="toast" role="status"></div>
+
+<script>
+"use strict";
+let S = null;          // последнее состояние с сервера
+let tab = "groups";
+let settingsDirty = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),3200); }
+
+async function api(method, path, body){
+  const r = await fetch(path, {method, headers:{"Content-Type":"application/json","X-Kproxyd":"1"},
+    body: body===undefined?undefined:JSON.stringify(body)});
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error || ("HTTP "+r.status));
+  return j;
+}
+
+async function saveConfig(cfg, okMsg){
+  try{ await api("PUT","/api/config",cfg); toast(okMsg||"Сохранено"); await load(); return true; }
+  catch(e){ toast("Не сохранено: "+e.message); return false; }
+}
+
+async function load(){
+  try{ S = await api("GET","/api/state"); render(); }
+  catch(e){ $("#sum").textContent = "нет связи с kproxyd: "+e.message; }
+}
+
+function ago(t){
+  if(!t || t.startsWith("0001")) return "—";
+  const s = Math.round((Date.now()-new Date(t))/1000);
+  if(s<60) return s+" с"; if(s<3600) return Math.round(s/60)+" мин"; if(s<86400) return Math.round(s/3600)+" ч";
+  return Math.round(s/86400)+" дн";
+}
+const outletByName = n => S.outlets.find(o=>o.name===n);
+function oClass(o){ if(!o||!o.enabled) return "off"; return o.healthy?"up":"down"; }
+function ms(v){ return v>0 ? Math.round(v)+" мс" : "—"; }
+
+function render(){
+  const up = S.outlets.filter(o=>o.enabled&&o.healthy).length;
+  const on = S.outlets.filter(o=>o.enabled).length;
+  $("#sum").textContent = `выходов доступно ${up} из ${on}` + (S.k_error? " · ошибка Keenetic: "+S.k_error : "");
+  renderGroups(); renderOutlets(); renderLog();
+  if(tab==="settings" && !settingsDirty) renderSettings();
+}
+
+/* ---------- группы ---------- */
+function renderGroups(){
+  const el = $("#tab-groups"), cfg = S.config;
+  if(!cfg.groups.length){
+    el.innerHTML = `<div class="empty">Групп пока нет. Группа связывает списки доменов Keenetic с набором выходов и правилом переключения.<br>
+      <button class="primary" data-act="editGroup">Создать группу</button>${cfg.outlets.length?"":`<p class="hint">Сначала добавьте выходы на вкладке «Выходы».</p>`}</div>`;
+    return;
+  }
+  const cards = cfg.groups.map(g=>{
+    const st = S.groups.find(x=>x.name===g.name) || {};
+    const act = st.active;
+    const stops = g.members.map(m=>{
+      const o = outletByName(m); const cls = [oClass(o), m===act?"active":""].join(" ");
+      const pinned = g.pinned===m;
+      return `<li class="${cls}"><span class="stop"></span>
+        <span class="oname">${esc(m)} <span class="meta num">${o&&o.healthy?ms(o.ewma):(o&&o.enabled?"недоступен":"выключен")}</span></span>
+        ${pinned? `<button class="pin" data-act="pin" data-g="${esc(g.name)}" data-o="" title="Снять закрепление">Закреплён</button>`
+                : `<button data-act="pin" data-g="${esc(g.name)}" data-o="${esc(m)}">Закрепить</button>`}</li>`;
+    }).join("");
+    const mode = g.mode==="proxy" ? `SOCKS ${esc(g.listen)} → ${esc(g.proxy_iface||"Proxy не указан")}` : "прямой маршрут в туннель";
+    const pol = g.pinned ? "вручную" : (g.policy==="fastest"?"самый быстрый":"по приоритету");
+    const lists = g.lists.length ? g.lists.map(l=>`<span class="tag">${esc(l)}</span>`).join(" ") : `<span class="meta">списки не привязаны</span>`;
+    return `<article class="card">
+      <div class="row"><h2>${esc(g.name)}</h2><button data-act="editGroup" data-g="${esc(g.name)}">Изменить</button></div>
+      <div class="headline ${act?"":"none"}">Сейчас: <b>${esc(act||"нет доступных выходов")}</b>${st.since&&act?` · ${ago(st.since)}`:""}${st.reason?` · ${esc(st.reason)}`:""}</div>
+      <ol class="track">${stops}</ol>
+      <div class="meta">${mode} · выбор ${pol}${g.mode==="proxy"?` · соединений ${st.conns||0}`:""}</div>
+      <div style="margin-top:8px">${lists}</div>
+      ${st.listen_err?`<div class="err">SOCKS не запущен: ${esc(st.listen_err)}</div>`:""}
+      ${st.sync_msg? `<div class="${st.sync_ok?"meta":"err"}" style="margin-top:6px">${st.sync_ok?"Keenetic: ":""}${esc(st.sync_msg)}</div>`:""}
+      ${g.pinned?`<div class="foot"><button data-act="pin" data-g="${esc(g.name)}" data-o="">Вернуть автовыбор</button></div>`:""}
+    </article>`;
+  }).join("");
+  el.innerHTML = `<div class="grid">${cards}</div><div class="foot"><button class="primary" data-act="editGroup">Новая группа</button></div>`;
+}
+
+async function pin(group, outlet){
+  try{ await api("POST",`/api/groups/${encodeURIComponent(group)}/pin`,{outlet}); toast(outlet?`Закреплён ${outlet}`:"Автовыбор включён"); load(); }
+  catch(e){ toast(e.message); }
+}
+
+function editGroup(name){
+  const cfg = clone(S.config);
+  const isNew = !name;
+  const usedPorts = cfg.groups.map(g=>g.listen).filter(Boolean);
+  let port = 1081; while(usedPorts.includes("127.0.0.1:"+port)) port++;
+  const g = isNew ? {name:"", mode:"proxy", policy:"fallback", members:cfg.outlets.map(o=>o.name), tolerance_ms:150,
+      listen:"127.0.0.1:"+port, proxy_iface:"", lists:[], all_down:"reject", kill_on_switch:false, user:"", password:""}
+    : clone(cfg.groups.find(x=>x.name===name));
+  let order = [...g.members, ...cfg.outlets.map(o=>o.name).filter(n=>!g.members.includes(n))];
+  let checked = new Set(g.members);
+  const proxies = S.k_ifaces.filter(i=>/^Proxy\d+$/.test(i.id)).map(i=>i.id);
+  const takenLists = new Set(cfg.groups.filter(x=>x.name!==name).flatMap(x=>x.lists));
+  const f = $("#dlgForm");
+
+  const drawMembers = () => {
+    $("#gMembers").innerHTML = order.map((n,i)=>`<li><input type="checkbox" ${checked.has(n)?"checked":""} data-m="${esc(n)}" aria-label="${esc(n)}">
+      <span><span class="dot ${oClass(outletByName(n))}"></span>${esc(n)}</span>
+      <button type="button" data-up="${i}" ${i===0?"disabled":""} aria-label="Выше">↑</button>
+      <button type="button" data-down="${i}" ${i===order.length-1?"disabled":""} aria-label="Ниже">↓</button></li>`).join("");
+  };
+  const syncMode = () => { const p = $("#gMode").value==="proxy"; f.querySelectorAll(".only-proxy").forEach(e=>e.hidden=!p);
+    $("#gTolWrap").hidden = $("#gPolicy").value!=="fastest"; };
+
+  f.innerHTML = `<h3>${isNew?"Новая группа":"Группа "+esc(name)}</h3>
+    <label for="gName">Название</label><input id="gName" value="${esc(g.name)}" required pattern="[A-Za-z0-9_.\\-]+" title="латиница, цифры, _ . -">
+    <div class="two">
+      <div><label for="gMode">Как трафик попадает в группу</label><select id="gMode">
+        <option value="proxy" ${g.mode==="proxy"?"selected":""}>Proxy (только TCP)</option>
+        <option value="route" ${g.mode==="route"?"selected":""}>маршрут (TCP и UDP)</option></select></div>
+      <div><label for="gPolicy">Какой выход выбирать</label><select id="gPolicy">
+        <option value="fallback" ${g.policy==="fallback"?"selected":""}>первый живой по порядку</option>
+        <option value="fastest" ${g.policy==="fastest"?"selected":""}>с минимальной задержкой</option></select></div>
+    </div>
+    <div id="gTolWrap"><label for="gTol">Переключаться, если новый быстрее хотя бы на, мс</label><input id="gTol" type="number" min="0" value="${g.tolerance_ms||0}"></div>
+    <label>Выходы (порядок = приоритет)</label><ul class="members" id="gMembers"></ul>
+    <label>Списки доменов Keenetic</label>
+    <div>${S.k_lists.length? S.k_lists.map(l=>`<div class="chk"><input type="checkbox" id="l_${esc(l.name)}" data-l="${esc(l.name)}" ${g.lists.includes(l.name)?"checked":""} ${takenLists.has(l.name)?"disabled":""}>
+      <label for="l_${esc(l.name)}" style="margin:0;color:var(--ink)">${esc(l.name)} <span class="meta">${l.domains} доменов${takenLists.has(l.name)?", занят другой группой":""}</span></label></div>`).join("")
+      : `<p class="hint">Списков не найдено. Создайте их в веб-интерфейсе Keenetic и нажмите «Синхронизировать».</p>`}</div>
+    <div class="only-proxy">
+      <div class="two">
+        <div><label for="gListen">SOCKS5 слушает</label><input id="gListen" value="${esc(g.listen||"")}"></div>
+        <div><label for="gPx">Proxy-интерфейс Keenetic</label><input id="gPx" list="pxList" value="${esc(g.proxy_iface||"")}" placeholder="Proxy0">
+          <datalist id="pxList">${proxies.map(p=>`<option value="${esc(p)}">`).join("")}</datalist></div>
+      </div>
+      <div class="two">
+        <div><label for="gUser">Логин SOCKS5 (необязательно)</label><input id="gUser" value="${esc(g.user||"")}" autocomplete="off"></div>
+        <div><label for="gPass">Пароль SOCKS5</label><input id="gPass" value="${esc(g.password||"")}" autocomplete="off"></div>
+      </div>
+      <p class="hint">Если слушаете не на 127.0.0.1, задайте логин и пароль: иначе прокси будет открыт для всей сети.</p>
+    </div>
+    <label for="gAll">Если все выходы группы недоступны</label><select id="gAll">
+      <option value="reject" ${g.all_down==="reject"?"selected":""}>блокировать (ничего не утекает к провайдеру)</option>
+      <option value="isp" ${g.all_down==="isp"?"selected":""}>пускать через провайдера</option></select>
+    <div class="chk"><input type="checkbox" id="gKill" ${g.kill_on_switch?"checked":""}><label for="gKill" style="margin:0;color:var(--ink)">Рвать открытые соединения при любом переключении</label></div>
+    <p class="hint">Соединения через упавший выход закрываются всегда — клиенты сразу переподключаются через новый.</p>
+    <div class="foot">
+      ${isNew?"":`<button type="button" class="danger left" id="gDel">Удалить группу</button>`}
+      ${!isNew && g.mode==="proxy" ? `<button type="button" id="gPxSetup">Настроить Proxy в Keenetic</button>`:""}
+      <button value="cancel" formnovalidate>Отмена</button>
+      <button type="button" class="primary" id="gSave">Сохранить</button>
+    </div>`;
+  drawMembers(); syncMode();
+  $("#gMode").onchange = syncMode; $("#gPolicy").onchange = syncMode;
+  $("#gMembers").onclick = e => {
+    const t = e.target;
+    if(t.dataset.m!==undefined){ t.checked?checked.add(t.dataset.m):checked.delete(t.dataset.m); return; }
+    const i = +(t.dataset.up ?? t.dataset.down ?? NaN); if(isNaN(i)) return;
+    const j = t.dataset.up!==undefined ? i-1 : i+1; [order[i],order[j]]=[order[j],order[i]]; drawMembers();
+  };
+  $("#gSave").onclick = async () => {
+    if(!f.reportValidity()) return;
+    const n = {...g,
+      name: $("#gName").value.trim(), mode: $("#gMode").value, policy: $("#gPolicy").value,
+      tolerance_ms: +$("#gTol").value||0, members: order.filter(x=>checked.has(x)),
+      lists: [...f.querySelectorAll("[data-l]:checked")].map(x=>x.dataset.l),
+      listen: $("#gListen").value.trim(), proxy_iface: $("#gPx").value.trim(),
+      user: $("#gUser").value.trim(), password: $("#gPass").value,
+      all_down: $("#gAll").value, kill_on_switch: $("#gKill").checked };
+    if(n.pinned && !n.members.includes(n.pinned)) n.pinned = "";
+    if(isNew) cfg.groups.push(n); else cfg.groups[cfg.groups.findIndex(x=>x.name===name)] = n;
+    if(await saveConfig(cfg, "Группа сохранена")) $("#dlg").close();
+  };
+  if(!isNew){
+    $("#gDel").onclick = async () => {
+      if(!confirm(`Удалить группу ${name}? Её маршруты в Keenetic будут убраны.`)) return;
+      cfg.groups = cfg.groups.filter(x=>x.name!==name);
+      if(await saveConfig(cfg, "Группа удалена")) $("#dlg").close();
+    };
+    const px = $("#gPxSetup");
+    if(px) px.onclick = async () => {
+      try{ await api("POST",`/api/groups/${encodeURIComponent(name)}/proxy-iface`); toast("Proxy-интерфейс настроен"); load(); }
+      catch(e){ toast("Не удалось: "+e.message); }
+    };
+  }
+  $("#dlg").showModal();
+}
+
+/* ---------- выходы ---------- */
+function spark(h){
+  if(!h || !h.length) return "";
+  const W=300, H=36, ok=h.filter(v=>v>0), max=Math.max(50,...ok), n=Math.max(h.length-1,1);
+  let d="", ticks="";
+  h.forEach((v,i)=>{ const x=(i/n*W).toFixed(1);
+    if(v>0){ const y=(H-3-(v/max)*(H-8)).toFixed(1); d += (d&&h[i-1]>0?"L":"M")+x+" "+y; }
+    else ticks += `<line x1="${x}" x2="${x}" y1="${H-10}" y2="${H}" stroke="var(--bad)" stroke-width="2"/>`; });
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="Задержка за последние проверки">
+    <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.6" vector-effect="non-scaling-stroke"/>${ticks}</svg>`;
+}
+
+function renderOutlets(){
+  const el = $("#tab-outlets"), cfg = S.config;
+  const known = new Set(cfg.outlets.map(o=>o.iface));
+  const found = S.k_ifaces.filter(i=>i.type==="Wireguard" || /^Wireguard\d+$/.test(i.id) || /^OpenVPN|^IKE|^SSTP|^L2TP|^PPTP/.test(i.id)).filter(i=>!known.has(i.id));
+  const cards = cfg.outlets.map(oc=>{
+    const o = outletByName(oc.name)||{}; const cls=oClass(o);
+    const inGroups = cfg.groups.filter(g=>g.members.includes(oc.name)).map(g=>g.name);
+    return `<article class="card">
+      <div class="row"><h2><span class="dot ${cls}"></span>${esc(oc.name)}</h2>
+        <button data-act="toggleOutlet" data-o="${esc(oc.name)}">${oc.enabled?"Выключить":"Включить"}</button></div>
+      <div class="meta num">${oc.enabled ? (o.healthy? `доступен · ${ms(o.ewma)} · стабилен ${ago(o.up_since)}` : `недоступен`) : "выключен, не проверяется"}</div>
+      ${spark(o.history)}
+      <dl class="kv">
+        <dt>Интерфейс</dt><dd>${esc(oc.iface)} / ${esc(o.dev||oc.dev||"?")}</dd>
+        <dt>Keenetic</dt><dd>${o.k_connected==="yes"?"подключён":(o.k_connected==="no"?"не подключён":"—")}</dd>
+        ${o.handshake?`<dt>Рукопожатие</dt><dd>${esc(o.handshake)}</dd>`:""}
+        <dt>Соединений</dt><dd class="num">${o.conns||0}</dd>
+        <dt>В группах</dt><dd>${inGroups.length?esc(inGroups.join(", ")):"ни в одной"}</dd>
+        <dt>Проверка</dt><dd>${ago(o.last_check)} назад</dd>
+      </dl>
+      ${o.last_err?`<div class="err" style="margin-top:6px">${esc(o.last_err)}</div>`:""}
+      <div class="foot"><button data-act="editOutlet" data-o="${esc(oc.name)}">Изменить</button></div>
+    </article>`;
+  }).join("");
+  const add = found.length ? `<h3 style="margin:22px 0 10px;font-size:16px">Туннели Keenetic, ещё не добавленные</h3>
+    <div class="grid">${found.map(i=>`<div class="card row"><div><span class="dot ${i.connected==="yes"?"up":"down"}"></span>${esc(i.id)}
+      <div class="meta">${esc(i.description||i.type)}</div></div><button class="primary" data-act="addOutlet" data-i="${esc(i.id)}" data-d="${esc(i.description)}">Добавить</button></div>`).join("")}</div>` : "";
+  el.innerHTML = (cfg.outlets.length ? `<div class="grid">${cards}</div>` :
+    `<div class="empty">Выходов пока нет. Выход — это туннель Keenetic (например, Wireguard0), через который kproxyd может отправлять трафик.</div>`) + add;
+}
+
+async function addOutlet(id, desc){
+  const cfg = clone(S.config);
+  let name = (desc||id).replace(/[^A-Za-z0-9_.-]+/g,"-").replace(/^-|-$/g,"") || id;
+  while(cfg.outlets.some(o=>o.name===name)) name += "-2";
+  cfg.outlets.push({name, iface:id, enabled:true});
+  await saveConfig(cfg, `Выход ${name} добавлен`);
+}
+async function toggleOutlet(name){
+  const cfg = clone(S.config); const o = cfg.outlets.find(x=>x.name===name); o.enabled = !o.enabled;
+  await saveConfig(cfg, o.enabled?`${name} включён`:`${name} выключен`);
+}
+function editOutlet(name){
+  const cfg = clone(S.config); const o = cfg.outlets.find(x=>x.name===name);
+  const used = cfg.groups.some(g=>g.members.includes(name));
+  const f = $("#dlgForm");
+  f.innerHTML = `<h3>Выход ${esc(name)}</h3>
+    <label for="oName">Название</label><input id="oName" value="${esc(o.name)}" required pattern="[A-Za-z0-9_.\\-]+">
+    <label for="oDev">Системное имя устройства</label><input id="oDev" value="${esc(o.dev||"")}" placeholder="определяется автоматически">
+    <p class="hint">Заполняйте, только если автоопределение ошиблось. Список устройств: <code>ls /sys/class/net</code>.</p>
+    <div class="foot">
+      <button type="button" class="danger left" id="oDel" ${used?"disabled title='Сначала уберите выход из групп'":""}>Удалить</button>
+      <button value="cancel" formnovalidate>Отмена</button><button type="button" class="primary" id="oSave">Сохранить</button></div>`;
+  $("#oSave").onclick = async () => {
+    if(!f.reportValidity()) return;
+    const nn = $("#oName").value.trim();
+    if(nn!==name){
+      cfg.groups.forEach(g=>{ g.members = g.members.map(m=>m===name?nn:m); if(g.pinned===name) g.pinned=nn; });
+    }
+    o.name = nn; o.dev = $("#oDev").value.trim();
+    if(await saveConfig(cfg)) $("#dlg").close();
+  };
+  $("#oDel").onclick = async () => { cfg.outlets = cfg.outlets.filter(x=>x.name!==name); if(await saveConfig(cfg,"Выход удалён")) $("#dlg").close(); };
+  $("#dlg").showModal();
+}
+
+/* ---------- журнал ---------- */
+function renderLog(){
+  const ev = S.events;
+  $("#tab-log").innerHTML = ev.length ? `<ul class="log">${ev.map(e=>`<li><time class="num" title="${esc(e.t)}">${new Date(e.t).toLocaleTimeString()}</time>
+    <span class="${esc(e.level)}">${esc(e.msg)}</span></li>`).join("")}</ul>` : `<div class="empty">Событий пока нет.</div>`;
+}
+
+/* ---------- настройки ---------- */
+function renderSettings(){
+  const c = S.config, p = c.probe;
+  $("#tab-settings").innerHTML = `<div class="grid">
+    <form class="card" id="fProbe"><h2>Проверка выходов</h2>
+      <label for="pUrl">Адрес для проверки</label><input id="pUrl" value="${esc(p.url)}">
+      <label for="pDns">DNS для проверки</label><input id="pDns" value="${esc(p.dns||"")}" placeholder="1.1.1.1:53">
+      <p class="hint">Запрос к DNS идёт через проверяемый туннель. <code>system</code> — использовать DNS роутера.</p>
+      <div class="two">
+        <div><label for="pInt">Интервал, с</label><input id="pInt" type="number" min="2" value="${p.interval_sec}"></div>
+        <div><label for="pTo">Таймаут, мс</label><input id="pTo" type="number" min="200" value="${p.timeout_ms}"></div>
+        <div><label for="pFail">Неудач подряд до «упал»</label><input id="pFail" type="number" min="1" value="${p.fail_threshold}"></div>
+        <div><label for="pRec">Успехов подряд до «жив»</label><input id="pRec" type="number" min="1" value="${p.recover_threshold}"></div>
+      </div>
+      <label for="pRet">Возврат на приоритетный выход после его восстановления, с</label><input id="pRet" type="number" min="0" value="${p.return_delay_sec}">
+      <p class="hint">Задержка возврата защищает от «дребезга», когда основной узел то появляется, то пропадает.</p>
+      <div class="foot"><button type="button" class="primary" id="pSave">Сохранить</button></div>
+    </form>
+    <form class="card" id="fWeb"><h2>Доступ к веб-интерфейсу</h2>
+      <label for="wUser">Логин</label><input id="wUser" value="${esc(c.web.user)}" autocomplete="username">
+      <label for="wPass">Новый пароль</label><input id="wPass" type="password" placeholder="оставьте пустым, чтобы не менять" autocomplete="new-password">
+      <label for="wListen">Адрес веб-интерфейса</label><input id="wListen" value="${esc(c.web.listen)}">
+      <p class="hint">Новый адрес начнёт работать после перезапуска kproxyd.</p>
+      <div class="foot"><button type="button" class="primary" id="wSave">Сохранить</button></div>
+    </form>
+  </div>
+  <div class="card" style="margin-top:14px"><h2>Конфигурация целиком</h2>
+    <p class="hint">Для тонкой настройки. Пароль веб-интерфейса здесь не показывается; пустое значение сохраняет текущий.</p>
+    <textarea id="raw" spellcheck="false" aria-label="Конфигурация JSON">${esc(JSON.stringify(c,null,2))}</textarea>
+    <div class="foot"><button type="button" id="rawReset">Отменить правки</button><button type="button" class="primary" id="rawSave">Сохранить JSON</button></div>
+  </div>
+  <p class="meta" style="margin-top:14px">kproxyd ${esc(S.version)} · работает ${ago(S.started_at)} · маршрут по умолчанию через ${esc(S.wan_dev||"?")}</p>`;
+  settingsDirty = false;
+  $("#tab-settings").oninput = () => { settingsDirty = true; };
+  $("#pSave").onclick = async () => {
+    const cfg = clone(S.config);
+    cfg.probe = { ...cfg.probe, url:$("#pUrl").value.trim(), dns:$("#pDns").value.trim(), interval_sec:+$("#pInt").value, timeout_ms:+$("#pTo").value,
+      fail_threshold:+$("#pFail").value, recover_threshold:+$("#pRec").value, return_delay_sec:+$("#pRet").value };
+    if(await saveConfig(cfg)){ settingsDirty=false; renderSettings(); }
+  };
+  $("#wSave").onclick = async () => {
+    const cfg = clone(S.config);
+    cfg.web.user = $("#wUser").value.trim(); cfg.web.listen = $("#wListen").value.trim(); cfg.web.password = $("#wPass").value;
+    if(await saveConfig(cfg, cfg.web.password?"Сохранено. Браузер попросит войти с новым паролем":"Сохранено")){ settingsDirty=false; renderSettings(); }
+  };
+  $("#rawReset").onclick = () => { settingsDirty=false; renderSettings(); };
+  $("#rawSave").onclick = async () => {
+    let cfg; try{ cfg = JSON.parse($("#raw").value); }catch(e){ toast("Ошибка в JSON: "+e.message); return; }
+    if(await saveConfig(cfg)){ settingsDirty=false; renderSettings(); }
+  };
+}
+
+/* ---------- каркас ---------- */
+// Кнопки в карточках: данные только в data-атрибутах, чтобы имена не попадали в код JS.
+document.addEventListener("click", e => {
+  const b = e.target.closest("button[data-act]");
+  if(!b) return;
+  const d = b.dataset;
+  switch(d.act){
+    case "pin": pin(d.g, d.o); break;
+    case "editGroup": editGroup(d.g); break;
+    case "toggleOutlet": toggleOutlet(d.o); break;
+    case "editOutlet": editOutlet(d.o); break;
+    case "addOutlet": addOutlet(d.i, d.d); break;
+  }
+});
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  tab = b.dataset.tab;
+  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
+  document.querySelectorAll("section[id^=tab-]").forEach(s=>s.hidden = s.id!=="tab-"+tab);
+  if(tab==="settings" && S){ settingsDirty=false; renderSettings(); }
+});
+$("#bProbe").onclick = async () => { try{ await api("POST","/api/probe"); toast("Проверка запущена"); setTimeout(load,1500); }catch(e){ toast(e.message); } };
+$("#bSync").onclick = async () => { try{ await api("POST","/api/sync?save=1"); toast("Синхронизация запущена"); setTimeout(load,2000); }catch(e){ toast(e.message); } };
+
+load();
+setInterval(()=>{ if(!document.hidden && !$("#dlg").open) load(); }, 3000);
+</script>
+</body>
+</html>
