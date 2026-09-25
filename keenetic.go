@@ -255,7 +255,8 @@ func (r DNSRoute) cmd() string {
 
 type RunningConfig struct {
 	Routes []DNSRoute
-	Lists  map[string]int // имя списка -> число доменов
+	Lists  map[string]int    // имя списка -> число доменов
+	Descr  map[string]string // интерфейс -> description
 }
 
 func (k *Keenetic) ReadConfig() (*RunningConfig, error) {
@@ -267,7 +268,7 @@ func (k *Keenetic) ReadConfig() (*RunningConfig, error) {
 }
 
 func parseRunningConfig(s string) *RunningConfig {
-	rc := &RunningConfig{Lists: map[string]int{}}
+	rc := &RunningConfig{Lists: map[string]int{}, Descr: map[string]string{}}
 	ctx, cur := "", ""
 	for _, raw := range strings.Split(s, "\n") {
 		line := strings.TrimRight(raw, "\r ")
@@ -283,6 +284,8 @@ func parseRunningConfig(s string) *RunningConfig {
 			case len(f) >= 3 && f[0] == "object-group" && f[1] == "fqdn":
 				ctx, cur = "fqdn", f[2]
 				rc.Lists[cur] += 0
+			case len(f) == 2 && f[0] == "interface":
+				ctx, cur = "interface", f[1]
 			}
 			continue
 		}
@@ -303,6 +306,11 @@ func parseRunningConfig(s string) *RunningConfig {
 		case "fqdn":
 			if len(f) >= 2 && f[0] == "include" {
 				rc.Lists[cur]++
+			}
+		case "interface":
+			if len(f) >= 2 && f[0] == "description" {
+				d := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "description"))
+				rc.Descr[cur] = strings.Trim(d, `"`)
 			}
 		}
 	}
@@ -390,3 +398,5 @@ func (k *Keenetic) EnsureProxyIface(iface, host, port, user, pass, desc string) 
 }
 
 func (k *Keenetic) SaveConfig() error { return k.CLI("system configuration save") }
+
+func (k *Keenetic) RemoveIface(iface string) error { return k.CLI("no interface " + iface) }

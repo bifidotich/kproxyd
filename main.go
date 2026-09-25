@@ -18,7 +18,13 @@ var (
 
 func main() {
 	cfgPath := flag.String("config", "/opt/etc/kproxyd/config.json", "путь к файлу конфигурации")
+	cleanup := flag.Bool("cleanup", false, "убрать из Keenetic маршруты и Proxy-интерфейсы kproxyd и выйти (для uninstall.sh)")
+	dryRun := flag.Bool("dry-run", false, "с -cleanup: только показать, что будет сделано")
+	keepRoute := flag.Bool("keep-route", false, "с -cleanup: оставить маршруты route-групп в туннели")
 	flag.Parse()
+	if *cleanup {
+		os.Exit(runCleanup(*cfgPath, *dryRun, *keepRoute))
+	}
 	log.SetFlags(log.LstdFlags)
 
 	store, created, err := loadStore(*cfgPath)

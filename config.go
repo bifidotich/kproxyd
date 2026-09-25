@@ -331,6 +331,21 @@ func loadStore(path string) (*Store, bool, error) {
 	return s, created, nil
 }
 
+// readConfigFile читает конфиг без проверки и без записи — для -cleanup,
+// которому нужен даже конфиг, не прошедший бы validate.
+func readConfigFile(path string) (*Config, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var c Config
+	if err := json.Unmarshal(b, &c); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	c.fillDefaults()
+	return &c, nil
+}
+
 func (s *Store) Get() *Config {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
