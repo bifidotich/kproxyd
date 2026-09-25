@@ -27,7 +27,6 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /api/state", a.hState)
 	mux.HandleFunc("PUT /api/config", a.hPutConfig)
 	mux.HandleFunc("POST /api/groups/{name}/pin", a.hPin)
-	mux.HandleFunc("POST /api/groups/{name}/proxy-iface", a.hProxyIface)
 	mux.HandleFunc("POST /api/probe", func(w http.ResponseWriter, r *http.Request) {
 		select {
 		case a.probeNow <- struct{}{}:
@@ -35,8 +34,9 @@ func (a *App) routes() http.Handler {
 		}
 		writeJSON(w, map[string]any{"ok": true})
 	})
-	mux.HandleFunc("POST /api/sync", func(w http.ResponseWriter, r *http.Request) {
-		a.requestSync(r.URL.Query().Get("save") == "1")
+	// перечитать конфигурацию Keenetic (только чтение)
+	mux.HandleFunc("POST /api/keenetic/refresh", func(w http.ResponseWriter, r *http.Request) {
+		a.requestInspect()
 		writeJSON(w, map[string]any{"ok": true})
 	})
 	return a.auth(mux)
@@ -102,15 +102,19 @@ func (a *App) hState(w http.ResponseWriter, r *http.Request) {
 			outs = append(outs, x)
 		}
 	}
+	// пустые списки отдаём как [], а не null: интерфейс не должен ломаться, пока Keenetic не прочитан
 	grs := make([]GroupState, 0, len(a.groups))
 	for _, g := range c.Groups {
 		if st := a.groups[g.Name]; st != nil {
-			grs = append(grs, *st)
+			x := *st
+			x.ProxyIfaces = append([]string{}, st.ProxyIfaces...)
+			x.Lists = append([]string{}, st.Lists...)
+			grs = append(grs, x)
 		}
 	}
-	kifs := append([]KIface(nil), a.kIfaces...)
-	var lists []map[string]any
-	var routes []DNSRoute
+	kifs := append([]KIface{}, a.kIfaces...)
+	lists := []map[string]any{}
+	routes := []DNSRoute{}
 	if a.kRC != nil {
 		for name, n := range a.kRC.Lists {
 			lists = append(lists, map[string]any{"name": name, "domains": n})
@@ -118,7 +122,7 @@ func (a *App) hState(w http.ResponseWriter, r *http.Request) {
 		routes = append(routes, a.kRC.Routes...)
 	}
 	kerr := a.kErr
-	evs := append([]Event(nil), a.events...)
+	evs := append([]Event{}, a.events...)
 	a.mu.RUnlock()
 
 	sort.Slice(lists, func(i, j int) bool { return lists[i]["name"].(string) < lists[j]["name"].(string) })
@@ -173,7 +177,7 @@ func (a *App) hPutConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.logf("info", "конфигурация обновлена через веб-интерфейс")
-	a.applyConfig(old, n)
+	a.applyConfig(n)
 	writeJSON(w, map[string]any{"ok": true})
 }
 
@@ -204,20 +208,5 @@ func (a *App) hPin(w http.ResponseWriter, r *http.Request) {
 		a.logf("info", "группа %s: вручную закреплён выход %s", name, in.Outlet)
 	}
 	a.evaluate()
-	writeJSON(w, map[string]any{"ok": true})
-}
-
-func (a *App) hProxyIface(w http.ResponseWriter, r *http.Request) {
-	c := a.store.Get()
-	g := c.group(r.PathValue("name"))
-	if g == nil || g.Mode != "proxy" || g.ProxyIface == "" {
-		writeErr(w, 400, errors.New("нужна группа в режиме proxy с указанным Proxy-интерфейсом"))
-		return
-	}
-	if err := a.setupProxyIface(*g); err != nil {
-		writeErr(w, 500, err)
-		return
-	}
-	a.requestSync(true)
 	writeJSON(w, map[string]any{"ok": true})
 }

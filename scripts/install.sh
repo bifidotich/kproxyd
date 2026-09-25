@@ -4,7 +4,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 [ -d /opt/etc/init.d ] || { echo "Entware не найден (/opt/etc/init.d). Сначала установите OPKG/Entware."; exit 1; }
-[ -x /bin/ndmc ] || echo "Внимание: /bin/ndmc не найден — управлять маршрутами Keenetic не получится."
+[ -x /bin/ndmc ] || echo "Внимание: /bin/ndmc не найден — kproxyd не сможет читать конфигурацию Keenetic и проверять её настройку."
 
 ARCH=""
 if command -v opkg >/dev/null 2>&1; then
@@ -39,3 +39,7 @@ echo
 grep "вход в веб-интерфейс" /opt/var/log/kproxyd.log 2>/dev/null | tail -1 || true
 echo "Веб-интерфейс: http://<адрес роутера>:8088/"
 echo "Логин и пароль лежат в /opt/etc/kproxyd/config.json (раздел web)."
+echo
+echo "kproxyd не меняет конфигурацию Keenetic. После создания группы в веб-интерфейсе"
+echo "создайте в Keenetic прокси-подключение SOCKS5 на её адрес и направьте в него списки"
+echo "доменов — пошаговая инструкция показана в карточке группы."

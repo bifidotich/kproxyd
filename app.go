@@ -44,10 +44,15 @@ type GroupState struct {
 	Since    time.Time `json:"since"`
 	Reason   string    `json:"reason"`
 	Conns    int       `json:"conns"`
-	SyncOK   bool      `json:"sync_ok"`
-	SyncMsg  string    `json:"sync_msg"`
 	ListenOK bool      `json:"listen_ok"`
 	ListenEr string    `json:"listen_err,omitempty"`
+
+	// что видно в конфигурации Keenetic (только чтение): Proxy-подключения на адрес группы
+	// и списки доменов, направленные в них
+	ProxyIfaces []string `json:"proxy_ifaces"`
+	Lists       []string `json:"lists"`
+	KeeneticOK  bool     `json:"keenetic_ok"`
+	KeeneticMsg string   `json:"keenetic_msg"`
 }
 
 type Event struct {
@@ -69,27 +74,23 @@ type App struct {
 	events  []Event
 	socks   map[string]*SocksServer // по имени группы
 
-	staleLists map[string]bool // списки, отвязанные от групп: их маршруты надо убрать
-	probed     bool            // первая проверка выходов завершена; до неё маршруты route-групп не трогаем
-
-	applyMu  sync.Mutex // изменения конфига применяются строго по одному
-	tracker  *ConnTracker
-	probeNow chan struct{}
-	syncCh   chan bool // true = сохранить конфигурацию Keenetic после синхронизации
+	applyMu   sync.Mutex // изменения конфига применяются строго по одному
+	tracker   *ConnTracker
+	probeNow  chan struct{}
+	inspectCh chan struct{} // перечитать конфигурацию Keenetic
 }
 
 func newApp(store *Store) *App {
 	c := store.Get()
 	a := &App{
-		store:      store,
-		k:          newKeenetic(c.NDMC, c.RCI),
-		outlets:    map[string]*OutletState{},
-		groups:     map[string]*GroupState{},
-		socks:      map[string]*SocksServer{},
-		staleLists: map[string]bool{},
-		tracker:    newConnTracker(),
-		probeNow:   make(chan struct{}, 1),
-		syncCh:     make(chan bool, 1),
+		store:     store,
+		k:         newKeenetic(c.NDMC, c.RCI),
+		outlets:   map[string]*OutletState{},
+		groups:    map[string]*GroupState{},
+		socks:     map[string]*SocksServer{},
+		tracker:   newConnTracker(),
+		probeNow:  make(chan struct{}, 1),
+		inspectCh: make(chan struct{}, 1),
 	}
 	a.rebuild(c)
 	return a
@@ -146,9 +147,7 @@ func (a *App) rebuild(c *Config) {
 func (a *App) reconcileSocks(c *Config) {
 	want := map[string]GroupCfg{}
 	for _, g := range c.Groups {
-		if g.Mode == "proxy" {
-			want[g.Name] = g
-		}
+		want[g.Name] = g
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -195,7 +194,7 @@ func (a *App) retrySocks() {
 	a.mu.RLock()
 	missing := false
 	for _, g := range c.Groups {
-		if _, ok := a.socks[g.Name]; g.Mode == "proxy" && !ok {
+		if _, ok := a.socks[g.Name]; !ok {
 			missing = true
 		}
 	}
@@ -275,16 +274,7 @@ func (a *App) probeAll(c *Config) {
 		}(o)
 	}
 	wg.Wait()
-
-	a.mu.Lock()
-	first := !a.probed
-	a.probed = true
-	a.mu.Unlock()
 	a.evaluate()
-	if first {
-		// если все выходы лежат, evaluate не увидит смены и синхронизацию не запросит
-		a.requestSync(false)
-	}
 }
 
 func (a *App) probeOne(c *Config, o OutletCfg, kstate map[string]KIface) {
@@ -463,7 +453,6 @@ func (a *App) evaluate() {
 	now := time.Now()
 	type change struct {
 		group, from, to, reason string
-		mode                    string
 		kill                    bool
 	}
 	var changes []change
@@ -478,7 +467,7 @@ func (a *App) evaluate() {
 		if next != gs.Active {
 			old := gs.Active
 			oldDown := old != "" && (a.outlets[old] == nil || !a.outlets[old].Healthy)
-			changes = append(changes, change{g.Name, old, next, reason, g.Mode, g.KillOnSwitch || oldDown})
+			changes = append(changes, change{g.Name, old, next, reason, g.KillOnSwitch || oldDown})
 			gs.Active, gs.Since, gs.Reason = next, now, reason
 		} else if reason != "" {
 			gs.Reason = reason
@@ -501,7 +490,6 @@ func (a *App) evaluate() {
 	}
 	a.mu.Unlock()
 
-	needSync := false
 	for _, ch := range changes {
 		to := ch.to
 		if to == "" {
@@ -517,12 +505,6 @@ func (a *App) evaluate() {
 				a.logf("info", "группа %s: закрыто %d соединений через %s", ch.group, n, ch.from)
 			}
 		}
-		if ch.mode == "route" {
-			needSync = true
-		}
-	}
-	if needSync {
-		a.requestSync(false)
 	}
 }
 
@@ -574,269 +556,110 @@ func (a *App) choose(c *Config, g GroupCfg, current string, now time.Time) (stri
 	}
 }
 
-// ---------- синхронизация DNS-маршрутов Keenetic ----------
+// ---------- конфигурация Keenetic (только чтение) ----------
+//
+// Keenetic настраивает пользователь: «Клиент прокси» (Proxy0) на SOCKS5-адрес группы
+// и DNS-маршруты списков доменов в этот интерфейс. kproxyd конфигурацию не меняет —
+// периодически читает её и подсказывает, что настроено не так.
 
-func (a *App) requestSync(save bool) {
+func (a *App) requestInspect() {
 	select {
-	case a.syncCh <- save:
+	case a.inspectCh <- struct{}{}:
 	default:
-		if save { // уже есть запрос в очереди; гарантируем, что сохранение не потеряется
-			go func() { a.syncCh <- true }()
-		}
 	}
 }
 
-func (a *App) syncLoop(ctx context.Context) {
-	t := time.NewTicker(2 * time.Minute)
+func (a *App) inspectLoop(ctx context.Context) {
+	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 	for {
+		a.inspect()
 		select {
 		case <-ctx.Done():
 			return
-		case save := <-a.syncCh:
-			a.syncRoutes(save)
+		case <-a.inspectCh:
 		case <-t.C:
-			a.syncRoutes(false)
 		}
 	}
 }
 
-func (a *App) desiredRoutes(c *Config) map[string]*DNSRoute {
-	want := map[string]*DNSRoute{}
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	for _, g := range c.Groups {
-		reject := g.AllDown == "reject"
-		for _, l := range g.Lists {
-			switch g.Mode {
-			case "proxy":
-				if g.ProxyIface != "" {
-					want[l] = &DNSRoute{List: l, Iface: g.ProxyIface, Auto: true, Reject: reject}
-				}
-			case "route":
-				gs := a.groups[g.Name]
-				if gs != nil && gs.Active != "" {
-					if o := c.outlet(gs.Active); o != nil {
-						want[l] = &DNSRoute{List: l, Iface: o.Iface, Auto: true, Reject: reject}
-					}
-				} else if reject && len(g.Members) > 0 {
-					// всё лежит, но трафик к провайдеру не выпускаем: держим маршрут в основной туннель с reject
-					if o := c.outlet(g.Members[0]); o != nil {
-						want[l] = &DNSRoute{List: l, Iface: o.Iface, Auto: true, Reject: true}
-					}
-				}
-				// all_down=isp и всё лежит: маршрута нет, трафик идёт по умолчанию
-			}
-		}
-	}
-	return want
-}
-
-func (a *App) syncRoutes(save bool) {
+func (a *App) inspect() {
 	c := a.store.Get()
 	rc, err := a.k.ReadConfig()
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	if err != nil {
-		a.mu.Lock()
+		if a.kErr != err.Error() {
+			go a.logf("error", "чтение конфигурации Keenetic: %v", err)
+		}
 		a.kErr = err.Error()
-		a.mu.Unlock()
-		a.logf("error", "чтение конфигурации Keenetic: %v", err)
 		return
 	}
-	want := a.desiredRoutes(c)
-	a.mu.RLock()
-	probed := a.probed
-	a.mu.RUnlock()
-
-	owned := map[string]string{} // список -> группа
-	skip := map[string]bool{}    // списки, маршруты которых пока не трогаем
-	for _, g := range c.Groups {
-		for _, l := range g.Lists {
-			owned[l] = g.Name
-			// route: до первой проверки активный выход ещё неизвестен;
-			// proxy без Proxy-интерфейса: группа не донастроена, маршруты оставляем как есть
-			if (g.Mode == "route" && !probed) || (g.Mode == "proxy" && g.ProxyIface == "") {
-				skip[l] = true
-			}
-		}
-	}
-	ourIfaces := map[string]bool{}
-	for _, o := range c.Outlets {
-		ourIfaces[o.Iface] = true
-	}
-	for _, g := range c.Groups {
-		if g.ProxyIface != "" {
-			ourIfaces[g.ProxyIface] = true
-		}
-	}
-
-	groupErr := map[string][]string{}
-	changed := false
-
-	for list, grp := range owned {
-		if _, exists := rc.Lists[list]; !exists {
-			groupErr[grp] = append(groupErr[grp], "список "+list+" не найден в Keenetic")
-			continue
-		}
-		if skip[list] {
-			continue
-		}
-		w := want[list]
-		var cur []DNSRoute
-		for _, r := range rc.Routes {
-			if r.List == list {
-				cur = append(cur, r)
-			}
-		}
-		if w != nil {
-			exact := false
-			for _, r := range cur {
-				if r == *w {
-					exact = true
-				}
-			}
-			if !exact {
-				if err := a.k.SetRoute(*w, hasRoute(cur, w.List, w.Iface)); err != nil {
-					groupErr[grp] = append(groupErr[grp], err.Error())
-					continue
-				}
-				changed = true
-			}
-		}
-		for _, r := range cur {
-			if w != nil && r.Iface == w.Iface {
-				continue // тот же интерфейс: флаги уже обновлены повторной командой
-			}
-			if !ourIfaces[r.Iface] {
-				// маршрут создан не нами — не удаляем, но сообщаем о конфликте
-				groupErr[grp] = append(groupErr[grp], fmt.Sprintf("список %s также направлен в %s (не управляется kproxyd) — уберите маршрут вручную", list, r.Iface))
-				continue
-			}
-			if err := a.k.RemoveRoute(r.List, r.Iface); err != nil {
-				groupErr[grp] = append(groupErr[grp], err.Error())
-				continue
-			}
-			changed = true
-		}
-	}
-
-	// списки, которые отвязали от групп: убираем только маршруты в наши интерфейсы
-	a.mu.Lock()
-	stale := make([]string, 0, len(a.staleLists))
-	for l := range a.staleLists {
-		if _, still := owned[l]; !still {
-			stale = append(stale, l)
-		}
-	}
-	a.staleLists = map[string]bool{}
-	a.mu.Unlock()
-	for _, l := range stale {
-		for _, r := range rc.Routes {
-			if r.List == l && ourIfaces[r.Iface] {
-				if err := a.k.RemoveRoute(r.List, r.Iface); err != nil {
-					a.logf("error", "%v", err)
-				} else {
-					changed = true
-					a.logf("info", "маршрут списка %s -> %s удалён (список отвязан)", r.List, r.Iface)
-				}
-			}
-		}
-	}
-
-	if changed {
-		if rc2, err := a.k.ReadConfig(); err == nil {
-			rc = rc2
-		}
-	}
-	if save {
-		if err := a.k.SaveConfig(); err != nil {
-			a.logf("error", "сохранение конфигурации Keenetic: %v", err)
-		} else {
-			a.logf("info", "конфигурация Keenetic сохранена")
-		}
-	}
-
-	a.mu.Lock()
 	a.kRC, a.kErr = rc, ""
 	for _, g := range c.Groups {
-		gs := a.groups[g.Name]
-		if gs == nil {
-			continue
+		if gs := a.groups[g.Name]; gs != nil {
+			gs.ProxyIfaces, gs.Lists, gs.KeeneticOK, gs.KeeneticMsg = checkKeenetic(g, rc)
 		}
-		if errs := groupErr[g.Name]; len(errs) > 0 {
-			gs.SyncOK, gs.SyncMsg = false, strings.Join(errs, "; ")
-		} else if g.Mode == "proxy" && g.ProxyIface == "" && len(g.Lists) > 0 {
-			gs.SyncOK, gs.SyncMsg = false, "не указан Proxy-интерфейс Keenetic"
-		} else if g.Mode == "route" && !probed && len(g.Lists) > 0 {
-			gs.SyncOK, gs.SyncMsg = true, "ожидание первой проверки выходов"
-		} else {
-			gs.SyncOK, gs.SyncMsg = true, "маршруты в порядке"
-		}
-	}
-	a.mu.Unlock()
-	for g, errs := range groupErr {
-		a.logf("error", "группа %s: %s", g, strings.Join(errs, "; "))
 	}
 }
 
-// setupProxyIface направляет интерфейс клиента прокси Keenetic на SOCKS5-сервер группы.
-func (a *App) setupProxyIface(g GroupCfg) error {
-	host, port, err := net.SplitHostPort(g.Listen)
-	if err != nil {
-		return err
-	}
-	if ip := net.ParseIP(host); host == "" || (ip != nil && ip.IsUnspecified()) {
-		host = "127.0.0.1"
-	}
-	if err := a.k.EnsureProxyIface(g.ProxyIface, host, port, g.User, g.Password, "kproxyd-"+g.Name); err != nil {
-		a.logf("error", "настройка %s: %v", g.ProxyIface, err)
-		return err
-	}
-	a.logf("info", "интерфейс %s настроен на %s:%s", g.ProxyIface, host, port)
-	return nil
-}
-
-// refreshProxyIfaces обновляет уже настроенные Proxy-интерфейсы, если у группы сменились
-// адрес или логин/пароль SOCKS5 — иначе Keenetic продолжит стучаться со старыми.
-func (a *App) refreshProxyIfaces(old, n *Config) {
-	a.mu.RLock()
-	exists := map[string]bool{}
-	for _, f := range a.kIfaces {
-		exists[f.ID] = true
-	}
-	a.mu.RUnlock()
-	for _, g := range n.Groups {
-		og := old.group(g.Name)
-		if g.Mode != "proxy" || g.ProxyIface == "" || og == nil || og.Mode != "proxy" || og.ProxyIface != g.ProxyIface {
-			continue // новые привязки настраиваются кнопкой в интерфейсе
-		}
-		if !exists[g.ProxyIface] || (og.Listen == g.Listen && og.User == g.User && og.Password == g.Password) {
+// checkKeenetic ищет в конфигурации Keenetic Proxy-подключения на SOCKS5-адрес группы
+// и списки доменов, направленные в них.
+func checkKeenetic(g GroupCfg, rc *RunningConfig) (ifaces, lists []string, ok bool, msg string) {
+	lhost, lport, _ := net.SplitHostPort(g.Listen)
+	anyHost := lhost == "" || net.ParseIP(lhost) != nil && net.ParseIP(lhost).IsUnspecified()
+	var wrongProto []string
+	for id, p := range rc.Proxies {
+		host, port, err := net.SplitHostPort(p.Upstream)
+		if err != nil || port != lport || !(anyHost || host == lhost) {
 			continue
 		}
-		_ = a.setupProxyIface(g)
+		if p.Protocol != "" && p.Protocol != "socks5" {
+			wrongProto = append(wrongProto, id+" ("+p.Protocol+")")
+			continue
+		}
+		ifaces = append(ifaces, id)
 	}
+	sort.Strings(ifaces)
+	on := map[string]bool{}
+	for _, i := range ifaces {
+		on[i] = true
+	}
+	var noReject []string
+	for _, r := range rc.Routes {
+		if on[r.Iface] {
+			lists = append(lists, r.List)
+			if !r.Reject {
+				noReject = append(noReject, r.List)
+			}
+		}
+	}
+	sort.Strings(lists)
+	sort.Strings(noReject)
+
+	addr := g.Listen
+	if anyHost {
+		addr = net.JoinHostPort("127.0.0.1", lport)
+	}
+	switch {
+	case len(wrongProto) > 0 && len(ifaces) == 0:
+		return nil, nil, false, "подключение " + strings.Join(wrongProto, ", ") + " смотрит на " + addr + ", но протокол должен быть SOCKS5"
+	case len(ifaces) == 0:
+		return nil, nil, false, "в Keenetic нет подключения «Клиент прокси» (SOCKS5) на " + addr + " — создайте его"
+	case len(lists) == 0:
+		return ifaces, nil, false, "в " + strings.Join(ifaces, ", ") + " не направлен ни один список доменов — добавьте маршрут в Keenetic"
+	}
+	msg = strings.Join(ifaces, ", ") + " → " + addr
+	if len(noReject) > 0 {
+		msg += "; без «reject» у " + strings.Join(noReject, ", ") + ": если kproxyd остановится, эти домены пойдут через провайдера"
+	}
+	return ifaces, lists, true, msg
 }
 
 // applyConfig вызывается после изменения конфига через веб. Вызывающий держит a.applyMu.
-func (a *App) applyConfig(old, n *Config) {
-	oldLists := map[string]bool{}
-	for _, g := range old.Groups {
-		for _, l := range g.Lists {
-			oldLists[l] = true
-		}
-	}
-	for _, g := range n.Groups {
-		for _, l := range g.Lists {
-			delete(oldLists, l)
-		}
-	}
-	a.mu.Lock()
-	for l := range oldLists {
-		a.staleLists[l] = true
-	}
-	a.mu.Unlock()
+func (a *App) applyConfig(n *Config) {
 	a.rebuild(n)
-	a.refreshProxyIfaces(old, n)
-	a.requestSync(true)
+	a.requestInspect()
 	select {
 	case a.probeNow <- struct{}{}:
 	default:

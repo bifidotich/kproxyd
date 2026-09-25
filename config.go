@@ -32,21 +32,20 @@ type OutletCfg struct {
 	Enabled bool   `json:"enabled"`
 }
 
-// GroupCfg — группа: набор выходов + политика выбора + куда она подключена в Keenetic.
+// GroupCfg — группа: набор выходов + политика выбора + SOCKS5-сервер, к которому в Keenetic
+// подключают «Клиент прокси» (Proxy0) и направляют в него списки доменов.
 type GroupCfg struct {
 	Name         string   `json:"name"`
-	Mode         string   `json:"mode"`   // proxy | route
-	Policy       string   `json:"policy"` // fallback | fastest
+	Mode         string   `json:"mode,omitempty"` // устарело: был режим route, kproxyd больше не меняет Keenetic
+	Policy       string   `json:"policy"`         // fallback | fastest
 	Members      []string `json:"members"`
 	Pinned       string   `json:"pinned,omitempty"` // ручное закрепление выхода
 	ToleranceMs  int      `json:"tolerance_ms"`     // для fastest: переключаться, только если выигрыш больше
-	Listen       string   `json:"listen,omitempty"` // proxy: адрес SOCKS5, например 127.0.0.1:1081
+	Listen       string   `json:"listen"`           // адрес SOCKS5, например 127.0.0.1:1081
 	User         string   `json:"user,omitempty"`
 	Password     string   `json:"password,omitempty"`
-	ProxyIface   string   `json:"proxy_iface,omitempty"` // proxy: интерфейс Keenetic (Proxy0)
-	Lists        []string `json:"lists"`                 // object-group fqdn, привязанные к группе
-	AllDown      string   `json:"all_down"`              // reject | isp
-	KillOnSwitch bool     `json:"kill_on_switch"`        // proxy: рвать SOCKS5-соединения при любом переключении (в route соединения ведёт ядро)
+	AllDown      string   `json:"all_down"`       // reject | isp
+	KillOnSwitch bool     `json:"kill_on_switch"` // рвать SOCKS5-соединения при любом переключении
 }
 
 type WebCfg struct {
@@ -128,17 +127,14 @@ func (c *Config) fillDefaults() {
 	}
 	for i := range c.Groups {
 		g := &c.Groups[i]
-		if g.Mode == "" {
-			g.Mode = "proxy"
+		if g.Mode == "proxy" {
+			g.Mode = "" // единственный оставшийся режим, в конфиге не храним
 		}
 		if g.Policy == "" {
 			g.Policy = "fallback"
 		}
 		if g.AllDown == "" {
 			g.AllDown = "reject"
-		}
-		if g.Lists == nil {
-			g.Lists = []string{}
 		}
 		if g.Members == nil {
 			g.Members = []string{}
@@ -149,16 +145,14 @@ func (c *Config) fillDefaults() {
 // Названия выходов и групп: их задаёт пользователь, держим строгий набор символов.
 var nameRe = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
 
-// safeWord — непустая строка, которая уйдёт в команду ndmc одним словом (имена списков и интерфейсов Keenetic).
-func safeWord(s string) bool { return s != "" && validCred(s) }
-
-// validCred — логин/пароль SOCKS5 уходят в ndmc отдельным словом: без пробелов, кавычек и управляющих символов.
-func validCred(s string) bool {
-	if len(s) > 255 {
+// safeWord — непустое имя интерфейса или устройства без пробелов, кавычек и управляющих символов
+// (идёт в запрос RCI и в путь /sys/class/net).
+func safeWord(s string) bool {
+	if s == "" || len(s) > 255 {
 		return false
 	}
 	for _, r := range s {
-		if r <= ' ' || r == 0x7f || strings.ContainsRune(`"'\`, r) {
+		if r <= ' ' || r == 0x7f || strings.ContainsRune(`"'\/`, r) {
 			return false
 		}
 	}
@@ -191,7 +185,6 @@ func (c *Config) validate() error {
 		outlets[o.Name] = true
 	}
 	groups := map[string]bool{}
-	listOwner := map[string]string{}
 	listens := map[string]string{}
 	for _, g := range c.Groups {
 		if g.Name == "" {
@@ -200,18 +193,14 @@ func (c *Config) validate() error {
 		if !nameRe.MatchString(g.Name) {
 			return fmt.Errorf("группа %q: в названии допустимы латиница, цифры, _ . -", g.Name)
 		}
-		if g.ProxyIface != "" && !safeWord(g.ProxyIface) {
-			return fmt.Errorf("группа %q: недопустимое имя Proxy-интерфейса %q", g.Name, g.ProxyIface)
+		if g.Mode != "" {
+			return fmt.Errorf("группа %q: режим %q больше не поддерживается — kproxyd не меняет конфигурацию Keenetic. "+
+				"Уберите \"mode\", задайте listen (SOCKS5) и в Keenetic направьте списки группы в Proxy-подключение на этот адрес", g.Name, g.Mode)
 		}
 		if groups[g.Name] {
 			return fmt.Errorf("группа %q указана дважды", g.Name)
 		}
 		groups[g.Name] = true
-		switch g.Mode {
-		case "proxy", "route":
-		default:
-			return fmt.Errorf("группа %q: mode должен быть proxy или route", g.Name)
-		}
 		switch g.Policy {
 		case "fallback", "fastest":
 		default:
@@ -238,29 +227,18 @@ func (c *Config) validate() error {
 		if g.Pinned != "" && !seen[g.Pinned] {
 			return fmt.Errorf("группа %q: закреплённый выход %q не входит в группу", g.Name, g.Pinned)
 		}
-		if g.Mode == "proxy" {
-			if _, _, err := net.SplitHostPort(g.Listen); err != nil {
-				return fmt.Errorf("группа %q: неверный listen %q (нужно host:port)", g.Name, g.Listen)
-			}
-			if other, ok := listens[g.Listen]; ok {
-				return fmt.Errorf("группы %q и %q слушают один адрес %s", other, g.Name, g.Listen)
-			}
-			listens[g.Listen] = g.Name
-			if (g.User == "") != (g.Password == "") {
-				return fmt.Errorf("группа %q: укажите и логин, и пароль SOCKS5, или ни того, ни другого", g.Name)
-			}
-			if !validCred(g.User) || !validCred(g.Password) {
-				return fmt.Errorf("группа %q: логин и пароль SOCKS5 не должны содержать пробелы, кавычки и обратную косую черту", g.Name)
-			}
+		if _, _, err := net.SplitHostPort(g.Listen); err != nil {
+			return fmt.Errorf("группа %q: неверный listen %q (нужно host:port)", g.Name, g.Listen)
 		}
-		for _, l := range g.Lists {
-			if !safeWord(l) {
-				return fmt.Errorf("группа %q: недопустимое имя списка %q", g.Name, l)
-			}
-			if other, ok := listOwner[l]; ok {
-				return fmt.Errorf("список %q привязан сразу к группам %q и %q", l, other, g.Name)
-			}
-			listOwner[l] = g.Name
+		if other, ok := listens[g.Listen]; ok {
+			return fmt.Errorf("группы %q и %q слушают один адрес %s", other, g.Name, g.Listen)
+		}
+		listens[g.Listen] = g.Name
+		if (g.User == "") != (g.Password == "") {
+			return fmt.Errorf("группа %q: укажите и логин, и пароль SOCKS5, или ни того, ни другого", g.Name)
+		}
+		if len(g.User) > 255 || len(g.Password) > 255 { // предел протокола SOCKS5 (RFC 1929)
+			return fmt.Errorf("группа %q: логин и пароль SOCKS5 не длиннее 255 байт", g.Name)
 		}
 	}
 	return nil
@@ -329,21 +307,6 @@ func loadStore(path string) (*Store, bool, error) {
 		}
 	}
 	return s, created, nil
-}
-
-// readConfigFile читает конфиг без проверки и без записи — для -cleanup,
-// которому нужен даже конфиг, не прошедший бы validate.
-func readConfigFile(path string) (*Config, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var c Config
-	if err := json.Unmarshal(b, &c); err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
-	}
-	c.fillDefaults()
-	return &c, nil
 }
 
 func (s *Store) Get() *Config {
