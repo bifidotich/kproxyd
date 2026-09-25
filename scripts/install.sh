@@ -27,13 +27,11 @@ chmod +x /opt/sbin/kproxyd
 cp scripts/S99kproxyd /opt/etc/init.d/S99kproxyd
 chmod +x /opt/etc/init.d/S99kproxyd
 
-# сторож: раз в минуту поднимает процесс, если он умер (нужен пакет cron)
-if [ -f /opt/etc/crontab ]; then
-    grep -q S99kproxyd /opt/etc/crontab || echo "*/1 * * * * root /opt/etc/init.d/S99kproxyd check" >> /opt/etc/crontab
+# сторож теперь встроен в службу; строку от прежних версий убираем из cron
+if [ -f /opt/etc/crontab ] && grep -q S99kproxyd /opt/etc/crontab; then
+    sed -i '/S99kproxyd/d' /opt/etc/crontab
     [ -x /opt/etc/init.d/S10cron ] && /opt/etc/init.d/S10cron restart >/dev/null 2>&1 || true
-    echo "Сторож в cron включён."
-else
-    echo "Совет: opkg install cron и повторите установку — появится автоперезапуск при сбое."
+    echo "Старый сторож kproxyd убран из cron: перезапуск при сбое теперь встроен в службу."
 fi
 
 /opt/etc/init.d/S99kproxyd start

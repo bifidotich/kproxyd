@@ -1,48 +1,114 @@
 #!/bin/sh
-# Entware init-скрипт kproxyd: start | stop | restart | status | check
+# Entware init-скрипт kproxyd: start | stop | restart | status
+# kproxyd работает под встроенным сторожем: если процесс упадёт, сторож запустит его снова.
 BIN=/opt/sbin/kproxyd
 CFG=/opt/etc/kproxyd/config.json
 LOG=/opt/var/log/kproxyd.log
-PIDF=/opt/var/run/kproxyd.pid
+PIDF=/opt/var/run/kproxyd.pid         # сторож
+CPIDF=/opt/var/run/kproxyd.child.pid  # сам kproxyd
+BOOT_DELAY=30  # сразу после загрузки роутера ждём, пока поднимутся туннели
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 # Потолок кучи Go: при приближении к нему сборщик мусора работает агрессивнее.
 export GOMEMLIMIT=40MiB
 export GOGC=50
 
-# жив ли процесс: pid существует, это именно kproxyd и он не зомби
-running() {
-    [ -f "$PIDF" ] || return 1
-    p=$(cat "$PIDF")
-    [ -r "/proc/$p/cmdline" ] || return 1
-    grep -q kproxyd "/proc/$p/cmdline" 2>/dev/null || return 1
-    ! grep -q ') Z ' "/proc/$p/stat" 2>/dev/null
+# alive PID СТРОКА — процесс существует, не зомби и в его командной строке есть СТРОКА
+alive() {
+    [ -n "$1" ] && [ -r "/proc/$1/cmdline" ] || return 1
+    grep -q "$2" "/proc/$1/cmdline" 2>/dev/null || return 1
+    ! grep -q ') Z ' "/proc/$1/stat" 2>/dev/null
+}
+running() { [ -f "$PIDF" ] && alive "$(cat "$PIDF")" _supervise; }
+
+log() { echo "$(date '+%Y/%m/%d %H:%M:%S') [сторож] $*" >> "$LOG"; }
+uptime_s() { cut -d. -f1 /proc/uptime; }
+# простая ротация: лог больше 512 КБ начинаем заново
+rotate() { [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 524288 ] && mv "$LOG" "$LOG.1"; }
+
+# Цикл сторожа. Паузы делаем через «sleep & wait»: wait, в отличие от sleep, прерывается сигналом.
+supervise() {
+    stopping=""
+    child=""
+    trap 'stopping=1; [ -n "$child" ] && kill "$child" 2>/dev/null' TERM
+    trap '' HUP
+
+    if [ "$(uptime_s)" -lt 180 ] && [ "$BOOT_DELAY" -gt 0 ]; then
+        log "роутер недавно загрузился, запуск kproxyd через $BOOT_DELAY с"
+        sleep "$BOOT_DELAY" & child=$!
+        wait "$child"
+    fi
+
+    delay=5
+    while [ -z "$stopping" ]; do
+        rotate
+        started=$(uptime_s)
+        "$BIN" -config "$CFG" >> "$LOG" 2>&1 &
+        child=$!
+        echo "$child" > "$CPIDF"
+        [ -n "$stopping" ] && kill "$child" 2>/dev/null
+        wait "$child"
+        code=$?
+        if [ -n "$stopping" ]; then
+            wait "$child" 2>/dev/null  # сигнал прервал wait — дожидаемся, пока kproxyd корректно завершится
+            break
+        fi
+        # проработал дольше минуты — это не цикл падений, начинаем паузы заново
+        [ $(( $(uptime_s) - started )) -ge 60 ] && delay=5
+        log "kproxyd завершился (код $code), перезапуск через $delay с"
+        sleep "$delay" & child=$!
+        wait "$child"
+        delay=$((delay * 2))
+        [ "$delay" -gt 60 ] && delay=60
+    done
+    rm -f "$CPIDF"
+    log "остановлен"
 }
 
 start() {
     running && { echo "kproxyd уже запущен"; return 0; }
+    [ -x "$BIN" ] || { echo "нет $BIN"; return 1; }
     mkdir -p /opt/var/log /opt/var/run
-    # простая ротация: лог больше 512 КБ начинаем заново
-    [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 524288 ] && mv "$LOG" "$LOG.1"
-    "$BIN" -config "$CFG" >> "$LOG" 2>&1 &
+    "$SELF" _supervise </dev/null >/dev/null 2>&1 &
     echo $! > "$PIDF"
     sleep 1
     if running; then echo "kproxyd запущен"; else echo "kproxyd не стартовал, см. $LOG"; return 1; fi
 }
 
 stop() {
-    running || { rm -f "$PIDF"; echo "kproxyd не запущен"; return 0; }
-    kill "$(cat "$PIDF")"
-    for i in 1 2 3 4 5; do running || break; sleep 1; done
-    running && kill -9 "$(cat "$PIDF")" 2>/dev/null
-    rm -f "$PIDF"
+    if running; then
+        kill "$(cat "$PIDF")"
+        # kproxyd завершает веб-сервер до 3 с, сторож ждёт его
+        for i in 1 2 3 4 5 6 7; do running || break; sleep 1; done
+        running && kill -9 "$(cat "$PIDF")" 2>/dev/null
+    fi
+    # сторожа нет или он не справился — останавливаем kproxyd напрямую
+    if [ -f "$CPIDF" ] && alive "$(cat "$CPIDF")" "$BIN"; then
+        kill "$(cat "$CPIDF")"
+        for i in 1 2 3 4 5; do alive "$(cat "$CPIDF")" "$BIN" || break; sleep 1; done
+        alive "$(cat "$CPIDF")" "$BIN" && kill -9 "$(cat "$CPIDF")" 2>/dev/null
+    fi
+    rm -f "$PIDF" "$CPIDF"
     echo "kproxyd остановлен"
+}
+
+status() {
+    if running; then
+        c=""
+        [ -f "$CPIDF" ] && alive "$(cat "$CPIDF")" "$BIN" && c=", kproxyd pid $(cat "$CPIDF")"
+        [ -z "$c" ] && c=", kproxyd ждёт запуска (пауза после загрузки или сбоя)"
+        echo "работает: сторож pid $(cat "$PIDF")$c"
+    else
+        echo "не работает"
+        return 1
+    fi
 }
 
 case "$1" in
     start) start ;;
     stop) stop ;;
     restart) stop; start ;;
-    status) if running; then echo "работает, pid $(cat "$PIDF")"; else echo "не работает"; exit 1; fi ;;
-    # для cron: поднять, если процесс умер
-    check) running || { echo "$(date) kproxyd не работал, перезапуск" >> "$LOG"; start >/dev/null; } ;;
-    *) echo "Использование: $0 {start|stop|restart|status|check}"; exit 1 ;;
+    status) status ;;
+    check) running || start ;;  # совместимость со старой строкой в cron
+    _supervise) supervise ;;
+    *) echo "Использование: $0 {start|stop|restart|status}"; exit 1 ;;
 esac
