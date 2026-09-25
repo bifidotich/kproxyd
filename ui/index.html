@@ -1,127 +1,577 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en" class="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>kproxyd</title>
 <style>
-:root{
-  --bg:#EEF1F3; --surface:#FFFFFF; --ink:#17212B; --muted:#5B6B7A; --line:#D3DAE0;
-  --ok:#1E9E62; --warn:#C7851A; --bad:#C23B2A; --accent:#2256A8; --rail:#B7C2CC;
-  --radius-lg:14px; --radius-sm:8px;
+/* ==========================================================================
+   KeeneticOS Design System (NDW) Tokens - Light & Dark Modes
+   ========================================================================== */
+:root {
+  --primary-color: #0097dc;
+  --primary-color-hover: #1c6c9a;
+  --primary-color-disabled: #c1dded;
+  --primary-text: #000000;
+  --text-gray: #6e6e6e;
+  --help-text: #949b9f;
+  --background: #ffffff;
+  --card-background: #ffffff;
+  --dashboard-background: #EDEEF0;
+  --table-border: #ebebeb;
+  --menu-background: #fafafa;
+  --menu-hover: #f0f0f0;
+  --menu-border: #ebebeb;
+  --menu-active-item: #ebebeb;
+  --stroke: #bdb7b7;
+  --input-bg: #ffffff;
+  
+  --status-success-text: #1e7049;
+  --status-success-border: #cbf2df;
+  --status-success-background: #e4faef;
+  --indicator-online: #03b25a;
+  
+  --status-warning-text: #de3d3d;
+  --status-warning-border: #ffded9;
+  --status-warning-background: #ffece9;
+  --indicator-offline: #de3d3d;
+  
+  --status-special-text: #0097dc;
+  --status-special-border: #dbe9f2;
+  --status-special-background: #e0f3ff;
+  
+  --toggle-on-background: #cce6f5;
+  --toggle-on-thumb-background: #0097DC;
+  --toggle-on-thumb-box-shadow: 0 1px 3px 0 rgba(0, 151, 220, .25), 0 1px 2px 0 rgba(0, 151, 220, .25);
+  --toggle-off-background: #d6d8d9;
+  --toggle-off-thumb-background: #ffffff;
+  --toggle-off-thumb-box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .15);
+
+  --chart-line: #0097dc;
+  --chart-fill-start: #cce6f5;
+  --chart-fill-stop: rgba(55, 157, 216, 0.04);
+  
+  --box-shadow-1: 0 5px 20px rgb(0 0 0 / 5%);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
-@media (prefers-color-scheme: dark){
-  :root{ --bg:#12181E; --surface:#1B232B; --ink:#E3E9EE; --muted:#93A3B1; --line:#2C3843;
-    --ok:#34C483; --warn:#E3A640; --bad:#E86A57; --accent:#6C9BEA; --rail:#3A4853; }
+
+html.dark {
+  --background: #1b2434;
+  --card-background: #243146;
+  --dashboard-background: #161c27;
+  --table-border: #334155;
+  --menu-background: #121822;
+  --menu-hover: #1b2434;
+  --menu-border: #243146;
+  --menu-active-item: #2e3d57;
+  --primary-text: #f1f5f9;
+  --text-gray: #949b9f;
+  --help-text: #6f737b;
+  --stroke: #4d545f;
+  --input-bg: #1b2434;
+  
+  --primary-color: #0097dc;
+  --primary-color-hover: #38bdf8;
+  --primary-color-disabled: #2e3d57;
+  
+  --status-success-text: #4ade80;
+  --status-success-border: #22543d;
+  --status-success-background: #1b382b;
+  --indicator-online: #4ade80;
+  
+  --status-warning-text: #f87171;
+  --status-warning-border: #742a2a;
+  --status-warning-background: #3b1d22;
+  --indicator-offline: #f87171;
+  
+  --status-special-text: #38bdf8;
+  --status-special-border: #1e3a5f;
+  --status-special-background: #13273e;
+  
+  --toggle-on-background: #1e3a5f;
+  --toggle-on-thumb-background: #0097DC;
+  --toggle-on-thumb-box-shadow: 0 1px 3px 0 rgba(0, 151, 220, .4);
+  --toggle-off-background: #2e3d57;
+  --toggle-off-thumb-background: #808b96;
+  --toggle-off-thumb-box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .4);
+  
+  --chart-line: #38bdf8;
+  --chart-fill-start: rgba(56, 189, 248, 0.35);
+  --chart-fill-stop: rgba(56, 189, 248, 0.02);
+  
+  --box-shadow-1: 0 4px 18px rgba(0, 0, 0, 0.4);
+  --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);
-  font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;}
-.num{font-variant-numeric:tabular-nums}
-button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-sm);padding:7px 12px}
-button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-button.danger{color:var(--bad)}
-button:disabled{opacity:.5;cursor:default}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 9px;width:100%}
-textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;min-height:320px}
-label{display:block;margin:10px 0 4px;color:var(--muted);font-size:13px}
-.wrap{max-width:1080px;margin:0 auto;padding:16px}
-header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
-header h1{font-size:22px;margin:0;letter-spacing:-.01em}
-header .sum{color:var(--muted);font-size:14px}
-header .act{display:flex;gap:8px}
-nav{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
-nav button{border:none;background:none;border-bottom:2px solid transparent;border-radius:0;padding:9px 12px;color:var(--muted)}
-nav button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--ink)}
-.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px}
-.card h2{font-size:17px;margin:0}
-.row{display:flex;gap:8px;align-items:center;justify-content:space-between}
-.meta{color:var(--muted);font-size:13px}
-.tag{display:inline-block;font-size:12px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
-.err{color:var(--bad);font-size:13px}
-.okc{color:var(--ok)}
-/* трасса группы: выходы как станции на одной линии, активная подсвечена */
-.track{list-style:none;margin:14px 0 10px;padding:0;position:relative}
-.track li{position:relative;padding:6px 0 6px 28px;display:flex;align-items:center;gap:8px;justify-content:space-between}
-.track li::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--rail)}
-.track li:first-child::before{top:50%}
-.track li:last-child::before{bottom:50%}
-.track li:only-child::before{display:none}
-.stop{position:absolute;left:2px;top:50%;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;
-  background:var(--surface);border:2px solid var(--rail)}
-.track li.up .stop{border-color:var(--ok)}
-.track li.down .stop{border-color:var(--bad)}
-.track li.active .stop{background:var(--ok);border-color:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 22%,transparent)}
-.track li.active::before{background:var(--ok)}
-.track li.active .oname{font-weight:600}
-.track .oname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.track button{padding:3px 9px;font-size:13px}
-.track .pin{border-color:var(--accent);color:var(--accent)}
-.headline{font-size:13px;color:var(--muted);margin-top:4px}
-.headline b{color:var(--ink);font-weight:600}
-.headline.none b{color:var(--bad)}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--rail);margin-right:6px;vertical-align:1px}
-.dot.up{background:var(--ok)} .dot.down{background:var(--bad)} .dot.off{background:var(--rail)}
-svg.spark{width:100%;height:36px;display:block;margin:10px 0 4px}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px;margin-top:8px}
-.kv dt{color:var(--muted)} .kv dd{margin:0;overflow-wrap:anywhere}
-.log{list-style:none;padding:0;margin:0;font-size:14px}
-.log li{padding:8px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:76px 1fr;gap:10px}
-.log time{color:var(--muted)}
-.log .warn{color:var(--warn)} .log .error{color:var(--bad)}
-.empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--radius-lg)}
-.empty button{margin-top:10px}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
-.chk{display:flex;gap:8px;align-items:center;margin:6px 0}
-.chk input{width:auto}
-.members li{display:flex;gap:6px;align-items:center;padding:4px 0}
-.members{list-style:none;padding:0;margin:0}
-.members input{width:auto;margin:0}
-.members span{flex:1}
-.members button{padding:2px 8px}
-dialog{border:none;border-radius:var(--radius-lg);padding:0;background:var(--surface);color:var(--ink);width:min(560px,94vw);max-height:90vh}
-dialog::backdrop{background:rgb(0 0 0 / .45)}
-dialog form{padding:18px;overflow:auto;max-height:90vh}
-dialog h3{margin:0 0 6px}
-.foot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
-.foot .left{margin-right:auto}
-#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
-  padding:9px 14px;border-radius:var(--radius-sm);font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
-#toast.show{opacity:1}
-.hint{font-size:13px;color:var(--muted);margin:6px 0 0}
-details.setup{margin-top:10px;font-size:13px}
-details.setup summary{cursor:pointer;color:var(--accent)}
-details.setup ol{margin:8px 0;padding-left:20px}
-details.setup pre{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px;overflow-x:auto;font-size:12px;margin:6px 0 0}
-@media (max-width:560px){ .two{grid-template-columns:1fr} header .act{width:100%} header .act button{flex:1} }
-@media (prefers-reduced-motion:reduce){ #toast{transition:none} }
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; width: 100%; height: 100%;
+  font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px; line-height: 22px;
+  color: var(--primary-text);
+  background-color: var(--dashboard-background);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.num { font-variant-numeric: tabular-nums; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+/* Main Container */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Header (64px) */
+.header {
+  height: 64px;
+  min-height: 64px;
+  background-color: var(--background);
+  box-shadow: var(--box-shadow-1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 130;
+  border-bottom: 1px solid var(--menu-border);
+}
+.header__left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.header__menu-toggle {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 4px; color: var(--primary-color);
+  background: transparent; border: none; padding: 0;
+}
+.header__menu-toggle:hover { background-color: var(--menu-hover); }
+.header__branding {
+  display: flex; align-items: baseline; gap: 8px;
+  text-decoration: none; cursor: pointer; user-select: none;
+}
+.header__logo {
+  font-size: 19px; font-weight: 700; letter-spacing: -0.3px;
+  color: var(--primary-text);
+}
+.header__caption {
+  font-size: 15px; color: var(--primary-color);
+  display: flex; align-items: center; gap: 6px;
+  margin-left: 12px; padding-left: 14px;
+  border-left: 1px solid var(--menu-border);
+}
+.header__right {
+  display: flex; align-items: center; gap: 12px;
+}
+
+/* Status Pill */
+.header__status-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--status-success-background);
+  border: 1px solid var(--status-success-border);
+  color: var(--status-success-text);
+  font-size: 12px; font-weight: 500;
+  padding: 4px 10px; border-radius: 14px;
+}
+.header__status-badge.err {
+  background: var(--status-warning-background);
+  border-color: var(--status-warning-border);
+  color: var(--status-warning-text);
+}
+.indicator-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background-color: var(--indicator-online);
+  box-shadow: 0 0 0 2px rgba(3, 178, 90, 0.25);
+}
+.header__status-badge.err .indicator-dot {
+  background-color: var(--indicator-offline);
+  box-shadow: 0 0 0 2px rgba(222, 61, 61, 0.25);
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 4px;
+  border: 1px solid var(--table-border);
+  background: var(--background); color: var(--primary-color);
+  cursor: pointer; transition: background 0.1s ease, color 0.1s ease;
+  padding: 0;
+}
+.theme-toggle-btn:hover { background: var(--menu-hover); }
+.theme-toggle-btn svg { width: 17px; height: 17px; }
+
+/* Body Layout */
+.app-body {
+  display: flex; flex: 1; overflow: hidden; position: relative;
+}
+
+/* Sidebar Menu */
+.sidebar {
+  width: 240px; min-width: 240px;
+  background-color: var(--menu-background);
+  border-right: 1px solid var(--menu-border);
+  display: flex; flex-direction: column; height: 100%;
+  transition: width 0.15s ease, min-width 0.15s ease;
+  user-select: none; z-index: 100;
+}
+.sidebar.collapsed { width: 64px; min-width: 64px; }
+.sidebar__content { flex: 1; overflow-y: auto; padding: 12px 0; }
+.sidebar__section-title {
+  padding: 8px 20px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; color: var(--primary-color);
+  letter-spacing: 0.5px; white-space: nowrap; overflow: hidden;
+  transition: opacity 0.15s;
+}
+.sidebar.collapsed .sidebar__section-title { opacity: 0; height: 0; padding: 0; }
+.menu-item {
+  display: flex; align-items: center; gap: 14px; padding: 10px 20px;
+  color: var(--primary-text); text-decoration: none; cursor: pointer;
+  transition: background-color 0.1s linear; font-size: 14px; font-weight: 400;
+  border: none; background: transparent; width: 100%; text-align: left;
+}
+.menu-item:hover { background-color: var(--menu-hover); }
+.menu-item.active { background-color: var(--menu-active-item); font-weight: 500; }
+.menu-item__icon {
+  width: 20px; height: 20px; flex-shrink: 0; color: var(--primary-color);
+  display: flex; align-items: center; justify-content: center;
+}
+.menu-item__icon svg { width: 100%; height: 100%; fill: currentColor; }
+.menu-item__text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.sidebar.collapsed .menu-item__text { display: none; }
+
+/* Main Workspace */
+.main-content {
+  flex: 1; overflow-y: auto; padding: 24px 32px 40px;
+}
+.page-header { margin-bottom: 20px; }
+.page-title {
+  font-size: 20px; font-weight: 700; line-height: 28px;
+  margin: 0 0 4px; color: var(--primary-text);
+}
+.page-subtitle { font-size: 13px; color: var(--text-gray); margin: 0; }
+
+/* Cards & Grid */
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+}
+.card {
+  background: var(--card-background);
+  border: 1px solid var(--table-border);
+  border-radius: 8px; padding: 20px;
+  box-shadow: var(--card-shadow);
+  display: flex; flex-direction: column; position: relative;
+}
+.card h2 { font-size: 16px; font-weight: 700; margin: 0; line-height: 24px; }
+.row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+.meta { color: var(--text-gray); font-size: 12px; }
+.err { color: var(--status-warning-text); font-size: 13px; }
+.headline { font-size: 13px; color: var(--text-gray); margin: 6px 0 10px; }
+.headline b { color: var(--primary-text); font-weight: 700; }
+.headline.none b { color: var(--status-warning-text); }
+
+/* Keenetic NDW Toggle Switch */
+.ndw-toggle {
+  position: relative; display: inline-block; width: 36px; height: 20px; cursor: pointer;
+}
+.ndw-toggle input { opacity: 0; width: 0; height: 0; }
+.ndw-toggle__track {
+  position: absolute; top: 3px; left: 0; right: 0; height: 14px;
+  background-color: var(--toggle-off-background); border-radius: 7px;
+  transition: background-color 0.15s ease;
+}
+.ndw-toggle__thumb {
+  position: absolute; top: 0; left: 0; width: 20px; height: 20px;
+  background-color: var(--toggle-off-thumb-background); border-radius: 50%;
+  box-shadow: var(--toggle-off-thumb-box-shadow);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.ndw-toggle input:checked + .ndw-toggle__track { background-color: var(--toggle-on-background); }
+.ndw-toggle input:checked ~ .ndw-toggle__thumb {
+  transform: translateX(16px);
+  background-color: var(--toggle-on-thumb-background);
+  box-shadow: var(--toggle-on-thumb-box-shadow);
+}
+
+/* Chips / Badges (.ndw-chip) */
+.ndw-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px; border-radius: 4px; font-size: 12px; line-height: 16px;
+  font-weight: 500; border: 1px solid transparent;
+}
+.ndw-chip--success {
+  background-color: var(--status-success-background);
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
+}
+.ndw-chip--danger {
+  background-color: var(--status-warning-background);
+  border-color: var(--status-warning-border);
+  color: var(--status-warning-text);
+}
+.ndw-chip--tag {
+  background-color: var(--dashboard-background);
+  border-color: var(--table-border);
+  color: var(--text-gray);
+  border-radius: 4px;
+}
+.ndw-chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+.ndw-chip--success .dot { background-color: var(--indicator-online); }
+.ndw-chip--danger .dot { background-color: var(--indicator-offline); }
+
+/* Route Track (Groups) */
+.route-track { list-style: none; padding: 0; margin: 12px 0 10px; position: relative; }
+.route-item {
+  position: relative; padding: 6px 0 6px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px;
+}
+.route-item::before {
+  content: ""; position: absolute; left: 7px; top: 0; bottom: 0;
+  width: 2px; background-color: var(--stroke);
+}
+.route-item:first-child::before { top: 50%; }
+.route-item:last-child::before { bottom: 50%; }
+.route-item:only-child::before { display: none; }
+.route-stop {
+  position: absolute; left: 2px; top: 50%; transform: translateY(-50%);
+  width: 12px; height: 12px; border-radius: 50%;
+  background-color: var(--card-background); border: 2px solid var(--stroke);
+}
+.route-item.up .route-stop { border-color: var(--indicator-online); }
+.route-item.down .route-stop { border-color: var(--indicator-offline); }
+.route-item.active .route-stop {
+  background-color: var(--indicator-online);
+  border-color: var(--indicator-online);
+  box-shadow: 0 0 0 3px var(--status-success-background);
+}
+.route-item.active::before { background-color: var(--indicator-online); }
+.route-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route-item.active .route-name { font-weight: 700; }
+.route-ping { font-size: 12px; color: var(--text-gray); margin-left: 6px; }
+
+/* Sparkline Chart */
+svg.spark { width: 100%; height: 50px; display: block; margin: 10px 0; }
+
+/* Property Lists */
+.wan-info-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px;
+  padding: 12px 0; border-top: 1px solid var(--table-border); font-size: 13px;
+}
+.wan-property { display: flex; flex-direction: column; }
+.wan-property__label { font-size: 12px; color: var(--text-gray); line-height: 16px; }
+.wan-property__value { font-size: 13px; font-weight: 500; color: var(--primary-text); line-height: 20px; overflow-wrap: anywhere; }
+
+/* Buttons */
+.ndw-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 0 16px; height: 34px; font-size: 13px; font-weight: 500;
+  border-radius: 4px; cursor: pointer; border: 1px solid transparent;
+  transition: all 0.1s ease; white-space: nowrap; text-decoration: none;
+}
+.ndw-btn--primary {
+  background-color: var(--primary-color); border-color: var(--primary-color); color: #ffffff;
+}
+.ndw-btn--primary:hover { background-color: var(--primary-color-hover); border-color: var(--primary-color-hover); }
+.ndw-btn--outline {
+  background-color: var(--card-background); border-color: var(--table-border); color: var(--primary-color);
+}
+.ndw-btn--outline:hover { background-color: var(--primary-color-hover); border-color: var(--primary-color-hover); color: #ffffff; }
+.ndw-btn--danger {
+  background-color: transparent; border-color: var(--status-warning-border); color: var(--status-warning-text);
+}
+.ndw-btn--danger:hover { background-color: var(--status-warning-background); }
+.ndw-btn--small { height: 28px; padding: 0 10px; font-size: 12px; }
+.ndw-btn:disabled { opacity: 0.5; cursor: default; pointer-events: none; }
+
+/* Forms & Inputs */
+input, select, textarea {
+  background-color: var(--input-bg); color: var(--primary-text);
+  border: 1px solid var(--stroke); border-radius: 4px;
+  font-size: 13px; padding: 7px 10px; width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--primary-color);
+}
+label { display: block; margin: 10px 0 4px; color: var(--text-gray); font-size: 12px; }
+textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; min-height: 300px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.chk { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+.chk input { width: auto; }
+.hint { font-size: 12px; color: var(--text-gray); margin: 6px 0 0; }
+.foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
+.foot .left { margin-right: auto; }
+
+/* Setup Help Box */
+.keenetic-help-box {
+  margin-top: 14px; background-color: var(--status-special-background);
+  border: 1px solid var(--status-special-border); border-left: 3px solid var(--primary-color);
+  border-radius: 4px; padding: 12px 14px; font-size: 13px;
+}
+.keenetic-help-box summary {
+  color: var(--primary-color); font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+}
+.keenetic-help-box ol { margin: 10px 0 8px; padding-left: 20px; color: var(--primary-text); }
+.keenetic-cli-code {
+  background: var(--background); border: 1px solid var(--table-border);
+  border-radius: 4px; padding: 8px 12px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px; line-height: 18px; overflow-x: auto; position: relative;
+  margin-top: 8px; color: var(--primary-text);
+}
+.cli-copy-btn { position: absolute; top: 6px; right: 6px; }
+
+/* Empty state */
+.empty {
+  padding: 36px 20px; text-align: center; color: var(--text-gray);
+  background: var(--card-background); border: 1px dashed var(--table-border);
+  border-radius: 8px; font-size: 14px;
+}
+.empty button { margin-top: 14px; }
+
+/* Members list in modal */
+.members { list-style: none; padding: 0; margin: 0; border: 1px solid var(--table-border); border-radius: 4px; max-height: 200px; overflow-y: auto; }
+.members li { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--table-border); }
+.members li:last-child { border-bottom: none; }
+.members input { width: auto; margin: 0; }
+.members span { flex: 1; display: flex; align-items: center; gap: 6px; }
+.members button { padding: 2px 8px; font-size: 12px; }
+
+/* Event Log */
+.event-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.event-table tr { border-bottom: 1px solid var(--table-border); }
+.event-table td { padding: 9px 12px; }
+.event-time { width: 90px; color: var(--text-gray); font-family: ui-monospace, monospace; }
+
+/* Dialog */
+dialog {
+  border: none; border-radius: 8px; padding: 0;
+  background: var(--card-background); color: var(--primary-text);
+  width: min(580px, 94vw); max-height: 90vh;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
+dialog form { padding: 22px; overflow: auto; max-height: 90vh; }
+dialog h3 { margin: 0 0 10px; font-size: 17px; font-weight: 700; }
+
+/* Toast */
+#toast {
+  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+  background: #1b2434; color: #ffffff; padding: 9px 16px; border-radius: 4px;
+  font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  max-width: 90vw; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+html.dark #toast { background: #2e3d57; color: #f1f5f9; }
+#toast.show { opacity: 1; }
+
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--stroke); margin-right: 6px; }
+.dot.up { background: var(--indicator-online); }
+.dot.down { background: var(--indicator-offline); }
+.dot.off { background: var(--stroke); }
+
+@media (max-width: 768px) {
+  .sidebar { position: fixed; left: 0; top: 64px; bottom: 0; transform: translateX(-100%); transition: transform 0.2s ease; }
+  .sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 16px rgba(0,0,0,0.2); }
+  .main-content { padding: 16px; }
+  .two { grid-template-columns: 1fr; }
+  .header { padding: 0 14px; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>kproxyd</h1>
-      <div class="sum" id="sum">загрузка…</div>
+
+<div class="app-container">
+  <!-- Keenetic Top Navigation Header (64px) -->
+  <header class="header">
+    <div class="header__left">
+      <button class="header__menu-toggle" id="btnToggleSidebar" title="Toggle Navigation Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+
+      <div class="header__branding">
+        <span class="header__logo">kproxyd</span>
+      </div>
+
+      <div class="header__caption" id="headerCaption">Groups</div>
     </div>
-    <div class="act">
-      <button id="bProbe">Проверить выходы</button>
-      <button id="bSync">Перечитать Keenetic</button>
+
+    <div class="header__right">
+      <!-- Live Status Pill -->
+      <div class="header__status-badge" id="headerBadge">
+        <span class="indicator-dot"></span>
+        <span id="sum">loading…</span>
+      </div>
+
+      <!-- Theme Switcher (Light / Dark) -->
+      <button class="theme-toggle-btn" id="btnThemeToggle" title="Switch Light / Dark Theme">
+        <svg id="iconSun" style="display:none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg id="iconMoon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+
+      <!-- Action Buttons -->
+      <button class="ndw-btn ndw-btn--outline ndw-btn--small" id="bProbe">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span id="txtProbe">Probe Outlets</span>
+      </button>
+
+      <button class="ndw-btn ndw-btn--outline ndw-btn--small" id="bSync">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <span id="txtSync">Refresh Keenetic</span>
+      </button>
     </div>
   </header>
-  <nav role="tablist">
-    <button role="tab" data-tab="groups" aria-selected="true">Группы</button>
-    <button role="tab" data-tab="outlets" aria-selected="false">Выходы</button>
-    <button role="tab" data-tab="log" aria-selected="false">Журнал</button>
-    <button role="tab" data-tab="settings" aria-selected="false">Настройки</button>
-  </nav>
-  <section id="tab-groups"></section>
-  <section id="tab-outlets" hidden></section>
-  <section id="tab-log" hidden></section>
-  <section id="tab-settings" hidden></section>
+
+  <!-- Body with Sidebar and Main Content -->
+  <div class="app-body">
+    <!-- Sidebar Menu (KeeneticOS Navigation) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__content">
+        <div class="sidebar__section-title" id="txtNavRouting">PROXY ROUTING</div>
+
+        <button class="menu-item active" data-tab="groups">
+          <span class="menu-item__icon">
+            <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4V4zm10 0h6v7h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z"/></svg>
+          </span>
+          <span class="menu-item__text" id="txtTabGroups">Groups</span>
+        </button>
+
+        <button class="menu-item" data-tab="outlets">
+          <span class="menu-item__icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+          </span>
+          <span class="menu-item__text" id="txtTabOutlets">Outlets</span>
+        </button>
+
+        <div class="sidebar__section-title" style="margin-top:16px" id="txtNavSystem">SYSTEM</div>
+
+        <button class="menu-item" data-tab="log">
+          <span class="menu-item__icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          </span>
+          <span class="menu-item__text" id="txtTabLog">Event Log</span>
+        </button>
+
+        <button class="menu-item" data-tab="settings">
+          <span class="menu-item__icon">
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          </span>
+          <span class="menu-item__text" id="txtTabSettings">Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Workspace -->
+    <main class="main-content">
+      <section id="tab-groups"></section>
+      <section id="tab-outlets" hidden></section>
+      <section id="tab-log" hidden></section>
+      <section id="tab-settings" hidden></section>
+    </main>
+  </div>
 </div>
 
 <dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
@@ -129,342 +579,1178 @@ details.setup pre{background:var(--bg);border:1px solid var(--line);border-radiu
 
 <script>
 "use strict";
-let S = null;          // последнее состояние с сервера
+
+/* ==========================================================================
+   Multilingual Localization Engine (en: English, ru: Русский, zh: 简体中文)
+   ========================================================================== */
+const i18n = {
+  en: {
+    navGroups: "Groups",
+    navOutlets: "Outlets",
+    navLog: "Event Log",
+    navSettings: "Settings",
+    navRouting: "PROXY ROUTING",
+    navSystem: "SYSTEM",
+    probeBtn: "Probe Outlets",
+    syncBtn: "Refresh Keenetic",
+    probingToast: "Probe triggered",
+    refreshingToast: "Refreshing Keenetic configuration",
+    loading: "loading…",
+    noConnection: "no connection to kproxyd: ",
+    sumStatus: (up, on) => `${up} of ${on} outlets ready`,
+    keeneticErr: "Keenetic error: ",
+    
+    // Groups
+    noGroupsYet: "No groups configured yet. A group is a kproxyd SOCKS5 server: Keenetic routes selected domain lists into it, and kproxyd forwards traffic to the best tunnel in the group.",
+    createGroupBtn: "Create Group",
+    addOutletsFirstHint: "First add outlets in the «Outlets» tab.",
+    currentActive: "Active:",
+    noActiveOutlets: "no available outlets",
+    editBtn: "Edit",
+    pinBtn: "Pin",
+    pinnedBtn: "Pinned",
+    unpinHint: "Unpin outlet",
+    restoreAutoBtn: "Restore auto-selection",
+    autoRestored: "Auto-selection enabled",
+    pinnedToast: o => `Pinned ${o}`,
+    manualPolicy: "manual",
+    fastestPolicy: "fastest",
+    priorityPolicy: "priority order",
+    socksInfo: (l, pol, c, m) => `SOCKS5 ${l} · policy: ${pol} · connections: ${c} of ${m}`,
+    noLists: "no domain lists directed to this group in Keenetic",
+    socksNotRunning: "SOCKS listener failed: ",
+    newGroupBtn: "+ New Group",
+    setupTitle: "How to connect this group in Keenetic",
+    setupStep1: "Install Keenetic component <b>«Proxy client»</b>.",
+    setupStep2: (h, p, u) => `Create proxy connection: protocol <b>SOCKS5</b>, address <b>${h}</b>, port <b>${p}</b>${u ? ", username & password as configured in group" : ""}.`,
+    setupStep3: "In Domain Name Routing, route domain lists to this connection with <b>reject</b> flag.",
+    setupCommandsIntro: "Or execute via SSH / Keenetic CLI:",
+    setupHint: "kproxyd does not alter Keenetic configuration. After setup, click «Refresh Keenetic».",
+    copyBtn: "Copy",
+    copiedToast: "Copied to clipboard",
+
+    // Outlets
+    noOutletsYet: "No outlets configured yet. An outlet is a Keenetic tunnel (e.g. Wireguard0) through which kproxyd routes traffic.",
+    available: "available",
+    unavailable: "unavailable",
+    disabledNotProbed: "disabled, not probed",
+    disabled: "disabled",
+    stableFor: "stable ",
+    sparkAria: "Latency history (recent probes)",
+    lblInterface: "Interface",
+    lblKeenetic: "Keenetic",
+    connected: "connected",
+    notConnected: "not connected",
+    lblHandshake: "Handshake",
+    lblConnections: "Connections",
+    lblInGroups: "In groups",
+    none: "none",
+    lblLastCheck: "Last check",
+    agoSuffix: "ago",
+    unconfiguredTunnelsTitle: "Unconfigured Keenetic Tunnels",
+    addBtn: "+ Add",
+    outletAdded: n => `Outlet ${n} added`,
+    outletEnabled: n => `${n} enabled`,
+    outletDisabled: n => `${n} disabled`,
+    outletDeleted: "Outlet deleted",
+    groupSaved: "Group saved",
+    groupDeleted: "Group deleted",
+    savedToast: "Saved",
+    saveFailedToast: "Failed to save: ",
+
+    // Event Log
+    noEventsYet: "No events recorded yet.",
+
+    // Settings
+    sectionLang: "Interface Language",
+    lblLang: "Select Language",
+    langHint: "Changes interface language across all sections and saves preference in browser.",
+    sectionProbe: "Outlet Health Probing",
+    lblProbeUrl: "Probe URL",
+    lblProbeDns: "Probe DNS Server",
+    probeDnsHint: "This DNS server (also queried through the tunnel) is used to probe outlets and resolve domain names in SOCKS5 requests. <code>system</code> uses the router's DNS.",
+    lblInterval: "Interval, s",
+    lblTimeout: "Timeout, ms",
+    lblFail: "Fail threshold (count)",
+    lblRecover: "Recover threshold (count)",
+    lblReturn: "Return delay after recovery, s",
+    returnHint: "Return delay prevents rapid flapping when the primary tunnel fluctuates.",
+    sectionWeb: "Web Interface Access",
+    lblUser: "Username",
+    lblPass: "New Password",
+    passPlaceholder: "leave blank to keep current",
+    lblListen: "Web listen address",
+    webListenHint: "New listen address will take effect after restarting kproxyd.",
+    webPassSavedNotice: "Saved. Browser will require re-login with the new password.",
+    sectionRaw: "Full Configuration (JSON)",
+    rawHint: "For advanced tuning. Web interface password is not displayed here; empty value keeps current password.",
+    rawResetBtn: "Discard Changes",
+    rawSaveBtn: "Save JSON",
+    jsonError: "JSON syntax error: ",
+    metaFooter: (v, u, dev) => `kproxyd ${v} · uptime ${u} · default route via ${dev}`,
+
+    // Modals
+    newGroupTitle: "New Group",
+    editGroupTitle: n => `Group ${n}`,
+    lblName: "Name",
+    nameTitle: "Latin letters, digits, _ . -",
+    lblPolicy: "Selection Policy",
+    optFallback: "first alive in order",
+    optFastest: "lowest latency",
+    lblTol: "Switch only if alternative is faster by, ms",
+    lblMembers: "Outlets (order = priority)",
+    lblMoveUp: "Up",
+    lblMoveDown: "Down",
+    lblSocksListen: "SOCKS5 listen address",
+    socksListenHint: "In Keenetic, create a SOCKS5 proxy connection to this address and route domain lists into it. kproxyd never modifies Keenetic config.",
+    lblSocksUser: "SOCKS5 Username (optional)",
+    lblSocksPass: "SOCKS5 Password",
+    socksAuthHint: "If not listening on 127.0.0.1, set a username and password to prevent open access across the network.",
+    lblAllDown: "If all outlets in group are down",
+    optReject: "block (reject - no traffic leaks to ISP)",
+    optIsp: "pass through ISP",
+    lblMaxConns: "Max concurrent connections",
+    maxConnsHint: "Beyond this limit, new connections are rejected to safeguard router memory. Each connection uses up to ~100 KB.",
+    lblKill: "Terminate open connections on any switch",
+    killHint: "Connections through a dropped outlet are always closed immediately so clients reconnect through the new one.",
+    delGroupBtn: "Delete Group",
+    cancelBtn: "Cancel",
+    saveBtn: "Save",
+    delGroupConfirm: n => `Delete group ${n}? Keenetic proxy connection and domain routing are not modified by kproxyd — remove them manually in Keenetic if needed.`,
+
+    editOutletTitle: n => `Outlet ${n}`,
+    lblDev: "System device name (interface)",
+    devPlaceholder: "auto-detected",
+    devHint: "Fill only if auto-detection failed. Device list: <code>ls /sys/class/net</code>.",
+    delOutletBtn: "Delete",
+    delDisabledTitle: "Remove outlet from groups first"
+  },
+
+  ru: {
+    navGroups: "Группы",
+    navOutlets: "Выходы",
+    navLog: "Журнал",
+    navSettings: "Настройки",
+    navRouting: "МАРШРУТИЗАЦИЯ",
+    navSystem: "СИСТЕМА",
+    probeBtn: "Проверить выходы",
+    syncBtn: "Перечитать Keenetic",
+    probingToast: "Проверка запущена",
+    refreshingToast: "Конфигурация Keenetic перечитывается",
+    loading: "загрузка…",
+    noConnection: "нет связи с kproxyd: ",
+    sumStatus: (up, on) => `выходов доступно ${up} из ${on}`,
+    keeneticErr: "ошибка Keenetic: ",
+    
+    // Groups
+    noGroupsYet: "Групп пока нет. Группа — это SOCKS5-сервер kproxyd: Keenetic отправляет в него выбранные списки доменов, а kproxyd — в лучший из туннелей группы.",
+    createGroupBtn: "Создать группу",
+    addOutletsFirstHint: "Сначала добавьте выходы на вкладке «Выходы».",
+    currentActive: "Сейчас:",
+    noActiveOutlets: "нет доступных выходов",
+    editBtn: "Изменить",
+    pinBtn: "Закрепить",
+    pinnedBtn: "Закреплён",
+    unpinHint: "Снять закрепление",
+    restoreAutoBtn: "Вернуть автовыбор",
+    autoRestored: "Автовыбор включён",
+    pinnedToast: o => `Закреплён ${o}`,
+    manualPolicy: "вручную",
+    fastestPolicy: "самый быстрый",
+    priorityPolicy: "по приоритету",
+    socksInfo: (l, pol, c, m) => `SOCKS5 ${l} · выбор: ${pol} · соединений: ${c} из ${m}`,
+    noLists: "в Keenetic в эту группу не направлен ни один список",
+    socksNotRunning: "SOCKS не запущен: ",
+    newGroupBtn: "+ Новая группа",
+    setupTitle: "Как подключить группу в Keenetic",
+    setupStep1: "Установите компонент Keenetic «Клиент прокси».",
+    setupStep2: (h, p, u) => `Создайте прокси-подключение: протокол <b>SOCKS5</b>, адрес <b>${h}</b>, порт <b>${p}</b>${u ? ", логин и пароль как в группе" : ""}.`,
+    setupStep3: "В маршрутизации по доменам направьте нужные списки в это подключение. Флаг «reject» не даст трафику уйти через провайдера, если kproxyd остановлен.",
+    setupCommandsIntro: "То же командами (выполните по SSH или в CLI Keenetic):",
+    setupHint: "kproxyd ничего не меняет в Keenetic — после настройки нажмите «Перечитать Keenetic».",
+    copyBtn: "Копировать",
+    copiedToast: "Скопировано в буфер",
+
+    // Outlets
+    noOutletsYet: "Выходов пока нет. Выход — это туннель Keenetic (например, Wireguard0), через который kproxyd может отправлять трафик.",
+    available: "доступен",
+    unavailable: "недоступен",
+    disabledNotProbed: "выключен, не проверяется",
+    disabled: "выключен",
+    stableFor: "стабилен ",
+    sparkAria: "Задержка за последние проверки",
+    lblInterface: "Интерфейс",
+    lblKeenetic: "Keenetic",
+    connected: "подключён",
+    notConnected: "не подключён",
+    lblHandshake: "Рукопожатие",
+    lblConnections: "Соединений",
+    lblInGroups: "В группах",
+    none: "ни в одной",
+    lblLastCheck: "Проверка",
+    agoSuffix: "назад",
+    unconfiguredTunnelsTitle: "Туннели Keenetic, ещё не добавленные",
+    addBtn: "+ Добавить",
+    outletAdded: n => `Выход ${n} добавлен`,
+    outletEnabled: n => `${n} включён`,
+    outletDisabled: n => `${n} выключен`,
+    outletDeleted: "Выход удалён",
+    groupSaved: "Группа сохранена",
+    groupDeleted: "Группа удалена",
+    savedToast: "Сохранено",
+    saveFailedToast: "Не сохранено: ",
+
+    // Event Log
+    noEventsYet: "Событий пока нет.",
+
+    // Settings
+    sectionLang: "Язык интерфейса",
+    lblLang: "Выберите язык",
+    langHint: "Меняет язык интерфейса во всех разделах и сохраняет выбор в браузере.",
+    sectionProbe: "Проверка выходов",
+    lblProbeUrl: "Адрес для проверки",
+    lblProbeDns: "DNS для проверки",
+    probeDnsHint: "Через этот DNS, тоже по туннелю, проверяются выходы и резолвятся имена в SOCKS5-запросах. <code>system</code> — использовать DNS роутера.",
+    lblInterval: "Интервал, с",
+    lblTimeout: "Таймаут, мс",
+    lblFail: "Неудач подряд до «упал»",
+    lblRecover: "Успехов подряд до «жив»",
+    lblReturn: "Возврат на приоритетный выход после восстановления, с",
+    returnHint: "Задержка возврата защищает от «дребезга», когда основной узел то появляется, то пропадает.",
+    sectionWeb: "Доступ к веб-интерфейсу",
+    lblUser: "Логин",
+    lblPass: "Новый пароль",
+    passPlaceholder: "оставьте пустым, чтобы не менять",
+    lblListen: "Адрес веб-интерфейса",
+    webListenHint: "Новый адрес начнёт работать после перезапуска kproxyd.",
+    webPassSavedNotice: "Сохранено. Браузер попросит войти с новым паролем",
+    sectionRaw: "Конфигурация целиком (JSON)",
+    rawHint: "Для тонкой настройки. Пароль веб-интерфейса здесь не показывается; пустое значение сохраняет текущий.",
+    rawResetBtn: "Отменить правки",
+    rawSaveBtn: "Сохранить JSON",
+    jsonError: "Ошибка в JSON: ",
+    metaFooter: (v, u, dev) => `kproxyd ${v} · работает ${u} · маршрут по умолчанию через ${dev}`,
+
+    // Modals
+    newGroupTitle: "Новая группа",
+    editGroupTitle: n => `Группа ${n}`,
+    lblName: "Название",
+    nameTitle: "латиница, цифры, _ . -",
+    lblPolicy: "Какой выход выбирать",
+    optFallback: "первый живой по порядку",
+    optFastest: "с минимальной задержкой",
+    lblTol: "Переключаться, если новый быстрее хотя бы на, мс",
+    lblMembers: "Выходы (порядок = приоритет)",
+    lblMoveUp: "Выше",
+    lblMoveDown: "Ниже",
+    lblSocksListen: "SOCKS5 слушает",
+    socksListenHint: "На этот адрес в Keenetic создаётся прокси-подключение (SOCKS5), и в него направляются списки доменов. kproxyd в Keenetic ничего не меняет.",
+    lblSocksUser: "Логин SOCKS5 (необязательно)",
+    lblSocksPass: "Пароль SOCKS5",
+    socksAuthHint: "Если слушаете не на 127.0.0.1, задайте логин и пароль: иначе прокси будет открыт для всей сети.",
+    lblAllDown: "Если все выходы группы недоступны",
+    optReject: "блокировать (ничего не утекает к провайдеру)",
+    optIsp: "пускать через провайдера",
+    lblMaxConns: "Не больше соединений одновременно",
+    maxConnsHint: "Сверх предела новые соединения отклоняются — чтобы kproxyd не занял всю память роутера. Соединение занимает до ~100 КБ.",
+    lblKill: "Рвать открытые соединения при любом переключении",
+    killHint: "Соединения через упавший выход закрываются всегда — клиенты сразу переподключаются через новый.",
+    delGroupBtn: "Удалить группу",
+    cancelBtn: "Отмена",
+    saveBtn: "Сохранить",
+    delGroupConfirm: n => `Удалить группу ${n}? Прокси-подключение и маршруты списков в Keenetic kproxyd не трогает — уберите их сами.`,
+
+    editOutletTitle: n => `Выход ${n}`,
+    lblDev: "Системное имя устройства",
+    devPlaceholder: "определяется автоматически",
+    devHint: "Заполняйте, только если автоопределение ошиблось. Список устройств: <code>ls /sys/class/net</code>.",
+    delOutletBtn: "Удалить",
+    delDisabledTitle: "Сначала уберите выход из групп"
+  },
+
+  zh: {
+    navGroups: "代理分组",
+    navOutlets: "出口线路",
+    navLog: "事件日志",
+    navSettings: "系统设置",
+    navRouting: "代理路由",
+    navSystem: "系统管理",
+    probeBtn: "检测出口",
+    syncBtn: "刷新 Keenetic",
+    probingToast: "探测已触发",
+    refreshingToast: "正在重新读取 Keenetic 配置",
+    loading: "加载中…",
+    noConnection: "无法连接到 kproxyd: ",
+    sumStatus: (up, on) => `${on} 个出口中有 ${up} 个就绪`,
+    keeneticErr: "Keenetic 错误: ",
+    
+    // Groups
+    noGroupsYet: "尚未配置分组。分组是 kproxyd 的 SOCKS5 代理服务：Keenetic 将选定的域名列表流量定向到此，kproxyd 则自动转发至该分组中最优的活动隧道。",
+    createGroupBtn: "创建分组",
+    addOutletsFirstHint: "请先在「出口」标签页中添加出口隧道。",
+    currentActive: "当前活动:",
+    noActiveOutlets: "无可用出口",
+    editBtn: "编辑",
+    pinBtn: "固定线路",
+    pinnedBtn: "已固定",
+    unpinHint: "取消固定",
+    restoreAutoBtn: "恢复自动选择",
+    autoRestored: "已恢复自动选择",
+    pinnedToast: o => `已固定出口 ${o}`,
+    manualPolicy: "手动指定",
+    fastestPolicy: "最低延迟",
+    priorityPolicy: "按优先级",
+    socksInfo: (l, pol, c, m) => `SOCKS5 ${l} · 策略: ${pol} · 活动连接: ${c} / ${m}`,
+    noLists: "Keenetic 中尚未将任何域名列表定向至该分组",
+    socksNotRunning: "SOCKS 监听未运行: ",
+    newGroupBtn: "+ 新建分组",
+    setupTitle: "Keenetic 路由接入指南",
+    setupStep1: "在 Keenetic 中安装组件 <b>«代理客户端» (Proxy client)</b>。",
+    setupStep2: (h, p, u) => `创建代理连接：协议 <b>SOCKS5</b>，地址 <b>${h}</b>，端口 <b>${p}</b>${u ? "，填写分组中设置的用户名和密码" : ""}。`,
+    setupStep3: "在域名路由中将所需的域名列表定向至此连接，并勾选 <b>reject</b> (不可用时拒绝) 标记。",
+    setupCommandsIntro: "或通过 SSH / Keenetic 命令行直接执行：",
+    setupHint: "kproxyd 不会自动修改 Keenetic 配置——完成设置后请点击「刷新 Keenetic」。",
+    copyBtn: "复制",
+    copiedToast: "已复制到剪贴板",
+
+    // Outlets
+    noOutletsYet: "尚未配置出口。出口是 Keenetic 中的隧道接口（例如 Wireguard0），kproxyd 可通过其路由流量。",
+    available: "可用",
+    unavailable: "不可用",
+    disabledNotProbed: "已禁用，不进行探测",
+    disabled: "已禁用",
+    stableFor: "稳定运行 ",
+    sparkAria: "最近检测延迟曲线",
+    lblInterface: "接口",
+    lblKeenetic: "Keenetic 状态",
+    connected: "已连接",
+    notConnected: "未连接",
+    lblHandshake: "最新握手",
+    lblConnections: "活动连接数",
+    lblInGroups: "所属分组",
+    none: "无",
+    lblLastCheck: "上次检查",
+    agoSuffix: "前",
+    unconfiguredTunnelsTitle: "未添加的 Keenetic 隧道",
+    addBtn: "+ 添加",
+    outletAdded: n => `已添加出口 ${n}`,
+    outletEnabled: n => `${n} 已启用`,
+    outletDisabled: n => `${n} 已禁用`,
+    outletDeleted: "出口已删除",
+    groupSaved: "分组已保存",
+    groupDeleted: "分组已删除",
+    savedToast: "已保存",
+    saveFailedToast: "保存失败: ",
+
+    // Event Log
+    noEventsYet: "暂无记录的事件。",
+
+    // Settings
+    sectionLang: "界面语言",
+    lblLang: "选择语言",
+    langHint: "实时更改所有界面的显示语言，并将首选项保存在浏览器中。",
+    sectionProbe: "出口健康检查",
+    lblProbeUrl: "探测目标 URL",
+    lblProbeDns: "探测 DNS 服务器",
+    probeDnsHint: "此 DNS 服务器（同样通过隧道查询）用于探测出口及解析 SOCKS5 请求中的域名。填写 <code>system</code> 则使用路由器默认 DNS。",
+    lblInterval: "检测间隔 (秒)",
+    lblTimeout: "超时时间 (毫秒)",
+    lblFail: "判定离线失败阈值",
+    lblRecover: "判定恢复成功阈值",
+    lblReturn: "恢复首选出口的延迟 (秒)",
+    returnHint: "延迟切换可防止主隧道网络波动时的频繁震荡。",
+    sectionWeb: "Web 界面访问",
+    lblUser: "用户名",
+    lblPass: "新密码",
+    passPlaceholder: "留空则保持当前密码不变",
+    lblListen: "Web 服务监听地址",
+    webListenHint: "修改监听地址后将在重启 kproxyd 守护进程后生效。",
+    webPassSavedNotice: "已保存。浏览器将提示使用新密码重新登录。",
+    sectionRaw: "完整配置 (JSON)",
+    rawHint: "供高级调优使用。此处不显示 Web 密码；留空将保持现有密码。",
+    rawResetBtn: "放弃修改",
+    rawSaveBtn: "保存 JSON",
+    jsonError: "JSON 语法错误: ",
+    metaFooter: (v, u, dev) => `kproxyd ${v} · 已运行 ${u} · 默认路由走 ${dev}`,
+
+    // Modals
+    newGroupTitle: "新建分组",
+    editGroupTitle: n => `分组 ${n}`,
+    lblName: "分组名称",
+    nameTitle: "英文字母、数字、_ . -",
+    lblPolicy: "出口选择策略",
+    optFallback: "按列表顺序优先选择首个可用线路",
+    optFastest: "自动选择延迟最低的线路",
+    lblTol: "仅当新线路延迟至少快 (毫秒) 时才切换",
+    lblMembers: "出口列表 (排序 = 优先级)",
+    lblMoveUp: "上移",
+    lblMoveDown: "下移",
+    lblSocksListen: "SOCKS5 监听地址",
+    socksListenHint: "在 Keenetic 中为此地址创建 SOCKS5 代理连接并定向域名列表。kproxyd 绝不会修改 Keenetic 的配置。",
+    lblSocksUser: "SOCKS5 用户名 (可选)",
+    lblSocksPass: "SOCKS5 密码",
+    socksAuthHint: "如果监听地址不是 127.0.0.1，请务必设置用户名和密码，防止局域网未经授权公开访问。",
+    lblAllDown: "若分组内所有出口均不可用",
+    optReject: "拒绝连接 (reject - 绝不向运营商泄露流量)",
+    optIsp: "回退直连 (通过运营商出口放行)",
+    lblMaxConns: "最大并发连接数",
+    maxConnsHint: "超过此上限的新连接将被拒绝，以防耗尽路由器内存。每个并发连接最多占用约 100 KB 内存。",
+    lblKill: "线路发生任何切换时强制关闭已建立的连接",
+    killHint: "当当前出口离线时，现有连接始终会被立即关闭，以便客户端通过新线路重连。",
+    delGroupBtn: "删除分组",
+    cancelBtn: "取消",
+    saveBtn: "保存",
+    delGroupConfirm: n => `确定要删除分组 ${n} 吗？kproxyd 不会修改 Keenetic 中的代理连接与域名路由配置——请根据需要手动在 Keenetic 中清理。`,
+
+    editOutletTitle: n => `出口 ${n}`,
+    lblDev: "系统网卡设备名称",
+    devPlaceholder: "自动检测",
+    devHint: "仅在自动检测不正确时填写。可用网卡列表可查: <code>ls /sys/class/net</code>。",
+    delOutletBtn: "删除",
+    delDisabledTitle: "请先将此出口从所有分组中移除"
+  }
+};
+
+/* ==========================================================================
+   State & App Controller
+   ========================================================================== */
+let S = null;                  // latest state from backend
 let tab = "groups";
 let settingsDirty = false;
+let currentLang = localStorage.getItem("kproxyd_lang") || "en";
+let currentTheme = localStorage.getItem("kproxyd_theme") || "light";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clone = o => JSON.parse(JSON.stringify(o));
+const t = k => i18n[currentLang][k];
 
-function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),3200); }
+function toast(msg){
+  const el = $("#toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(el._h);
+  el._h = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+function applyTheme(theme) {
+  currentTheme = theme;
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.classList.toggle("light", theme !== "dark");
+  $("#iconSun").style.display = theme === "dark" ? "block" : "none";
+  $("#iconMoon").style.display = theme === "dark" ? "none" : "block";
+  localStorage.setItem("kproxyd_theme", theme);
+}
+
+function toggleTheme() {
+  applyTheme(currentTheme === "dark" ? "light" : "dark");
+}
+
+function changeLang(l) {
+  currentLang = l;
+  localStorage.setItem("kproxyd_lang", l);
+  document.documentElement.lang = l;
+  updateStaticLabels();
+  if (S) render();
+}
+
+function updateStaticLabels() {
+  $("#txtNavRouting").textContent = t("navRouting");
+  $("#txtTabGroups").textContent = t("navGroups");
+  $("#txtTabOutlets").textContent = t("navOutlets");
+  $("#txtNavSystem").textContent = t("navSystem");
+  $("#txtTabLog").textContent = t("navLog");
+  $("#txtTabSettings").textContent = t("navSettings");
+  $("#txtProbe").textContent = t("probeBtn");
+  $("#txtSync").textContent = t("syncBtn");
+
+  const captions = {
+    groups: t("navGroups"),
+    outlets: t("navOutlets"),
+    log: t("navLog"),
+    settings: t("navSettings")
+  };
+  $("#headerCaption").textContent = captions[tab] || tab;
+}
 
 async function api(method, path, body){
-  const r = await fetch(path, {method, headers:{"Content-Type":"application/json","X-Kproxyd":"1"},
-    body: body===undefined?undefined:JSON.stringify(body)});
-  const j = await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(j.error || ("HTTP "+r.status));
+  const r = await fetch(path, {
+    method,
+    headers: { "Content-Type": "application/json", "X-Kproxyd": "1" },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  const j = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(j.error || ("HTTP " + r.status));
   return j;
 }
 
 async function saveConfig(cfg, okMsg){
-  try{ await api("PUT","/api/config",cfg); toast(okMsg||"Сохранено"); await load(); return true; }
-  catch(e){ toast("Не сохранено: "+e.message); return false; }
+  try {
+    await api("PUT", "/api/config", cfg);
+    toast(okMsg || t("savedToast"));
+    await load();
+    return true;
+  } catch(e) {
+    toast(t("saveFailedToast") + e.message);
+    return false;
+  }
 }
 
 async function load(){
-  try{ S = await api("GET","/api/state"); render(); }
-  catch(e){ $("#sum").textContent = "нет связи с kproxyd: "+e.message; }
+  try {
+    S = await api("GET", "/api/state");
+    render();
+  } catch(e) {
+    $("#headerBadge").classList.add("err");
+    $("#sum").textContent = t("noConnection") + e.message;
+  }
 }
 
-function ago(t){
-  if(!t || t.startsWith("0001")) return "—";
-  const s = Math.round((Date.now()-new Date(t))/1000);
-  if(s<60) return s+" с"; if(s<3600) return Math.round(s/60)+" мин"; if(s<86400) return Math.round(s/3600)+" ч";
-  return Math.round(s/86400)+" дн";
+function ago(ts){
+  if(!ts || ts.startsWith("0001")) return "—";
+  const s = Math.round((Date.now() - new Date(ts)) / 1000);
+  if (currentLang === "zh") {
+    if(s < 60) return s + " 秒" + " " + t("agoSuffix");
+    if(s < 3600) return Math.round(s/60) + " 分钟" + " " + t("agoSuffix");
+    if(s < 86400) return Math.round(s/3600) + " 小时" + " " + t("agoSuffix");
+    return Math.round(s/86400) + " 天" + " " + t("agoSuffix");
+  } else if (currentLang === "ru") {
+    if(s < 60) return s + " с " + t("agoSuffix");
+    if(s < 3600) return Math.round(s/60) + " мин " + t("agoSuffix");
+    if(s < 86400) return Math.round(s/3600) + " ч " + t("agoSuffix");
+    return Math.round(s/86400) + " дн " + t("agoSuffix");
+  } else {
+    if(s < 60) return s + "s " + t("agoSuffix");
+    if(s < 3600) return Math.round(s/60) + "m " + t("agoSuffix");
+    if(s < 86400) return Math.round(s/3600) + "h " + t("agoSuffix");
+    return Math.round(s/86400) + "d " + t("agoSuffix");
+  }
 }
-const outletByName = n => S.outlets.find(o=>o.name===n);
-function oClass(o){ if(!o||!o.enabled) return "off"; return o.healthy?"up":"down"; }
-function ms(v){ return v>0 ? Math.round(v)+" мс" : "—"; }
+
+function formatDuration(ts) {
+  if(!ts || ts.startsWith("0001")) return "";
+  const s = Math.round((Date.now() - new Date(ts)) / 1000);
+  if (currentLang === "zh") {
+    if(s < 60) return s + " 秒";
+    if(s < 3600) return Math.round(s/60) + " 分钟";
+    if(s < 86400) return Math.round(s/3600) + " 小时";
+    return Math.round(s/86400) + " 天";
+  } else if (currentLang === "ru") {
+    if(s < 60) return s + " с";
+    if(s < 3600) return Math.round(s/60) + " мин";
+    if(s < 86400) return Math.round(s/3600) + " ч";
+    return Math.round(s/86400) + " дн";
+  } else {
+    if(s < 60) return s + "s";
+    if(s < 3600) return Math.round(s/60) + "m";
+    if(s < 86400) return Math.round(s/3600) + "h";
+    return Math.round(s/86400) + "d";
+  }
+}
+
+const outletByName = n => S.outlets.find(o => o.name === n);
+function oClass(o){ if(!o || !o.enabled) return "off"; return o.healthy ? "up" : "down"; }
+function ms(v){
+  if(v <= 0) return "—";
+  return Math.round(v) + (currentLang === "ru" ? " мс" : (currentLang === "zh" ? " 毫秒" : " ms"));
+}
 
 function render(){
-  const up = S.outlets.filter(o=>o.enabled&&o.healthy).length;
-  const on = S.outlets.filter(o=>o.enabled).length;
-  $("#sum").textContent = `выходов доступно ${up} из ${on}` + (S.k_error? " · ошибка Keenetic: "+S.k_error : "");
-  renderGroups(); renderOutlets(); renderLog();
-  if(tab==="settings" && !settingsDirty) renderSettings();
+  const up = S.outlets.filter(o => o.enabled && o.healthy).length;
+  const on = S.outlets.filter(o => o.enabled).length;
+  
+  const b = $("#headerBadge");
+  if(S.k_error) {
+    b.classList.add("err");
+    $("#sum").textContent = t("sumStatus")(up, on) + " · " + t("keeneticErr") + S.k_error;
+  } else {
+    b.classList.remove("err");
+    $("#sum").textContent = t("sumStatus")(up, on);
+  }
+
+  updateStaticLabels();
+  renderGroups();
+  renderOutlets();
+  renderLog();
+  if(tab === "settings" && !settingsDirty) renderSettings();
 }
 
-/* ---------- группы ---------- */
+/* ==========================================================================
+   Groups Tab
+   ========================================================================== */
 function renderGroups(){
   const el = $("#tab-groups"), cfg = S.config;
   if(!cfg.groups.length){
-    el.innerHTML = `<div class="empty">Групп пока нет. Группа — это SOCKS5-сервер kproxyd: Keenetic отправляет в него выбранные списки доменов, а kproxyd — в лучший из туннелей группы.<br>
-      <button class="primary" data-act="editGroup">Создать группу</button>${cfg.outlets.length?"":`<p class="hint">Сначала добавьте выходы на вкладке «Выходы».</p>`}</div>`;
+    el.innerHTML = `<div class="empty">${esc(t("noGroupsYet"))}<br>
+      <button class="ndw-btn ndw-btn--primary" data-act="editGroup">${esc(t("createGroupBtn"))}</button>
+      ${cfg.outlets.length ? "" : `<p class="hint">${esc(t("addOutletsFirstHint"))}</p>`}</div>`;
     return;
   }
-  const cards = cfg.groups.map(g=>{
-    const st = S.groups.find(x=>x.name===g.name) || {};
+
+  const cards = cfg.groups.map(g => {
+    const st = S.groups.find(x => x.name === g.name) || {};
     const act = st.active;
-    const stops = g.members.map(m=>{
-      const o = outletByName(m); const cls = [oClass(o), m===act?"active":""].join(" ");
-      const pinned = g.pinned===m;
-      return `<li class="${cls}"><span class="stop"></span>
-        <span class="oname">${esc(m)} <span class="meta num">${o&&o.healthy?ms(o.ewma):(o&&o.enabled?"недоступен":"выключен")}</span></span>
-        ${pinned? `<button class="pin" data-act="pin" data-g="${esc(g.name)}" data-o="" title="Снять закрепление">Закреплён</button>`
-                : `<button data-act="pin" data-g="${esc(g.name)}" data-o="${esc(m)}">Закрепить</button>`}</li>`;
+    const stops = g.members.map(m => {
+      const o = outletByName(m);
+      const cls = [oClass(o), m === act ? "active" : ""].join(" ");
+      const pinned = g.pinned === m;
+      const statusText = o && o.healthy ? ms(o.ewma) : (o && o.enabled ? t("unavailable") : t("disabled"));
+      return `<li class="route-item ${cls}">
+        <span class="route-stop"></span>
+        <span class="route-name">${esc(m)} <span class="route-ping num">${statusText}</span></span>
+        ${pinned ? `<button class="ndw-btn ndw-btn--primary ndw-btn--small" data-act="pin" data-g="${esc(g.name)}" data-o="" title="${esc(t("unpinHint"))}">${esc(t("pinnedBtn"))}</button>`
+                 : `<button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="pin" data-g="${esc(g.name)}" data-o="${esc(m)}">${esc(t("pinBtn"))}</button>`}
+      </li>`;
     }).join("");
-    const pol = g.pinned ? "вручную" : (g.policy==="fastest"?"самый быстрый":"по приоритету");
-    const lists = (st.lists||[]).length ? st.lists.map(l=>`<span class="tag">${esc(l)}</span>`).join(" ") : `<span class="meta">в Keenetic в эту группу не направлен ни один список</span>`;
+
+    const pol = g.pinned ? t("manualPolicy") : (g.policy === "fastest" ? t("fastestPolicy") : t("priorityPolicy"));
+    const lists = (st.lists || []).length
+      ? st.lists.map(l => `<span class="ndw-chip ndw-chip--tag">${esc(l)}</span>`).join(" ")
+      : `<span class="meta">${esc(t("noLists"))}</span>`;
+
     return `<article class="card">
-      <div class="row"><h2>${esc(g.name)}</h2><button data-act="editGroup" data-g="${esc(g.name)}">Изменить</button></div>
-      <div class="headline ${act?"":"none"}">Сейчас: <b>${esc(act||"нет доступных выходов")}</b>${st.since&&act?` · ${ago(st.since)}`:""}${st.reason?` · ${esc(st.reason)}`:""}</div>
-      <ol class="track">${stops}</ol>
-      <div class="meta">SOCKS5 ${esc(g.listen)} · выбор ${pol} · соединений ${st.conns||0} из ${g.max_conns||256}</div>
-      <div style="margin-top:8px">${lists}</div>
-      ${st.listen_err?`<div class="err">SOCKS не запущен: ${esc(st.listen_err)}</div>`:""}
-      ${st.keenetic_msg? `<div class="${st.keenetic_ok?"meta":"err"}" style="margin-top:6px">Keenetic: ${esc(st.keenetic_msg)}</div>`:""}
-      ${st.keenetic_ok? "" : setupHelp(g)}
-      ${g.pinned?`<div class="foot"><button data-act="pin" data-g="${esc(g.name)}" data-o="">Вернуть автовыбор</button></div>`:""}
+      <div class="row">
+        <h2>${esc(g.name)}</h2>
+        <button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="editGroup" data-g="${esc(g.name)}">${esc(t("editBtn"))}</button>
+      </div>
+      <div class="headline ${act ? "" : "none"}">
+        ${esc(t("currentActive"))} <b>${esc(act || t("noActiveOutlets"))}</b>${st.since && act ? ` · ${formatDuration(st.since)}` : ""}${st.reason ? ` · ${esc(st.reason)}` : ""}
+      </div>
+      <ol class="route-track">${stops}</ol>
+      <div class="meta" style="margin-top:6px;">${esc(t("socksInfo")(g.listen, pol, st.conns || 0, g.max_conns || 256))}</div>
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">${lists}</div>
+      ${st.listen_err ? `<div class="err" style="margin-top:6px;">${esc(t("socksNotRunning"))}${esc(st.listen_err)}</div>` : ""}
+      ${st.keenetic_msg ? `<div class="${st.keenetic_ok ? "meta" : "err"}" style="margin-top:6px">Keenetic: ${esc(st.keenetic_msg)}</div>` : ""}
+      ${st.keenetic_ok ? "" : setupHelp(g)}
+      ${g.pinned ? `<div class="foot"><button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="pin" data-g="${esc(g.name)}" data-o="">${esc(t("restoreAutoBtn"))}</button></div>` : ""}
     </article>`;
   }).join("");
-  el.innerHTML = `<div class="grid">${cards}</div><div class="foot"><button class="primary" data-act="editGroup">Новая группа</button></div>`;
+
+  el.innerHTML = `<div class="grid">${cards}</div>
+    <div class="foot" style="margin-top:20px;">
+      <button class="ndw-btn ndw-btn--primary" data-act="editGroup">${esc(t("newGroupBtn"))}</button>
+    </div>`;
 }
 
-// Инструкция: Keenetic настраивает пользователь, kproxyd только читает его конфигурацию.
-// Раскрытые инструкции запоминаем: страница перерисовывается каждые 3 с.
 const openSetup = new Set();
 document.addEventListener("toggle", e => {
   const d = e.target;
-  if(d.dataset && d.dataset.setup !== undefined) d.open ? openSetup.add(d.dataset.setup) : openSetup.delete(d.dataset.setup);
+  if(d.dataset && d.dataset.setup !== undefined) {
+    d.open ? openSetup.add(d.dataset.setup) : openSetup.delete(d.dataset.setup);
+  }
 }, true);
+
 function setupHelp(g){
-  const [h, p] = (()=>{ const i = g.listen.lastIndexOf(":"); let h = g.listen.slice(0,i).replace(/^\[|\]$/g,""); if(!h||h==="0.0.0.0"||h==="::") h="127.0.0.1"; return [h, g.listen.slice(i+1)]; })();
-  // уже найденное подключение группы или первое свободное имя ProxyN
-  const st = S.groups.find(x=>x.name===g.name) || {};
-  const used = new Set([...S.k_ifaces.map(i=>i.id), ...S.groups.flatMap(x=>x.proxy_ifaces||[])]);
-  let n = 0; while(used.has("Proxy"+n)) n++;
-  const px = (st.proxy_ifaces||[])[0] || "Proxy"+n;
-  const auth = g.user ? `\ninterface ${px} authentication identity ${g.user}\ninterface ${px} authentication password ПАРОЛЬ_ГРУППЫ` : "";
-  return `<details class="setup" data-setup="${esc(g.name)}" ${openSetup.has(g.name)?"open":""}><summary>Как подключить группу в Keenetic</summary>
+  const [h, p] = (() => {
+    const i = g.listen.lastIndexOf(":");
+    let host = g.listen.slice(0, i).replace(/^\[|\]$/g, "");
+    if(!host || host === "0.0.0.0" || host === "::") host = "127.0.0.1";
+    return [host, g.listen.slice(i+1)];
+  })();
+
+  const st = S.groups.find(x => x.name === g.name) || {};
+  const used = new Set([...S.k_ifaces.map(i => i.id), ...S.groups.flatMap(x => x.proxy_ifaces || [])]);
+  let n = 0; while(used.has("Proxy" + n)) n++;
+  const px = (st.proxy_ifaces || [])[0] || "Proxy" + n;
+  const auth = g.user ? `\ninterface ${px} authentication identity ${g.user}\ninterface ${px} authentication password PASSWORD` : "";
+
+  return `<details class="keenetic-help-box" data-setup="${esc(g.name)}" ${openSetup.has(g.name) ? "open" : ""}>
+    <summary>
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <span>${esc(t("setupTitle"))}</span>
+    </summary>
     <ol>
-      <li>Установите компонент Keenetic «Клиент прокси».</li>
-      <li>Создайте прокси-подключение: протокол <b>SOCKS5</b>, адрес <b>${esc(h)}</b>, порт <b>${esc(p)}</b>${g.user?", логин и пароль как в группе":""}.</li>
-      <li>В маршрутизации по доменам направьте нужные списки в это подключение. Флаг «reject» (блокировать при недоступности) не даст трафику уйти через провайдера, если kproxyd остановлен.</li>
+      <li>${t("setupStep1")}</li>
+      <li>${t("setupStep2")(h, p, !!g.user)}</li>
+      <li>${t("setupStep3")}</li>
     </ol>
-    То же командами (выполните сами по SSH или в CLI Keenetic):
-    <pre>${esc(`interface ${px}
+    <div style="font-size:12px; margin-top:4px;">${esc(t("setupCommandsIntro"))}</div>
+    <div class="keenetic-cli-code">
+      <button type="button" class="ndw-btn ndw-btn--outline ndw-btn--small cli-copy-btn" onclick="copyCli(this)">${esc(t("copyBtn"))}</button>
+      <pre style="margin:0; font-family:inherit;">interface ${px}
 interface ${px} proxy protocol socks5
 interface ${px} proxy upstream ${h} ${p}${auth}
 interface ${px} up
-dns-proxy route object-group ИМЯ_СПИСКА ${px} auto reject
-system configuration save`)}</pre>
-    <p class="hint">kproxyd ничего не меняет в Keenetic — после настройки нажмите «Перечитать Keenetic».</p>
+dns-proxy route object-group LIST_NAME ${px} auto reject
+system configuration save</pre>
+    </div>
+    <p class="hint">${esc(t("setupHint"))}</p>
   </details>`;
 }
 
+function copyCli(btn) {
+  const pre = btn.parentElement.querySelector("pre");
+  if(pre) {
+    navigator.clipboard.writeText(pre.textContent).then(() => toast(t("copiedToast")));
+  }
+}
+
 async function pin(group, outlet){
-  try{ await api("POST",`/api/groups/${encodeURIComponent(group)}/pin`,{outlet}); toast(outlet?`Закреплён ${outlet}`:"Автовыбор включён"); load(); }
-  catch(e){ toast(e.message); }
+  try {
+    await api("POST", `/api/groups/${encodeURIComponent(group)}/pin`, { outlet });
+    toast(outlet ? t("pinnedToast")(outlet) : t("autoRestored"));
+    load();
+  } catch(e) {
+    toast(e.message);
+  }
 }
 
 function editGroup(name){
   const cfg = clone(S.config);
   const isNew = !name;
-  const usedPorts = cfg.groups.map(g=>g.listen).filter(Boolean);
-  let port = 1081; while(usedPorts.includes("127.0.0.1:"+port)) port++;
-  const g = isNew ? {name:"", policy:"fallback", members:cfg.outlets.map(o=>o.name), tolerance_ms:150,
-      listen:"127.0.0.1:"+port, all_down:"reject", kill_on_switch:false, max_conns:256, user:"", password:""}
-    : clone(cfg.groups.find(x=>x.name===name));
-  let order = [...g.members, ...cfg.outlets.map(o=>o.name).filter(n=>!g.members.includes(n))];
+  const usedPorts = cfg.groups.map(g => g.listen).filter(Boolean);
+  let port = 1081; while(usedPorts.includes("127.0.0.1:" + port)) port++;
+  const g = isNew ? {
+    name: "", policy: "fallback", members: cfg.outlets.map(o => o.name), tolerance_ms: 150,
+    listen: "127.0.0.1:" + port, all_down: "reject", kill_on_switch: false, max_conns: 256, user: "", password: ""
+  } : clone(cfg.groups.find(x => x.name === name));
+
+  let order = [...g.members, ...cfg.outlets.map(o => o.name).filter(n => !g.members.includes(n))];
   let checked = new Set(g.members);
   const f = $("#dlgForm");
 
   const drawMembers = () => {
-    $("#gMembers").innerHTML = order.map((n,i)=>`<li><input type="checkbox" ${checked.has(n)?"checked":""} data-m="${esc(n)}" aria-label="${esc(n)}">
+    $("#gMembers").innerHTML = order.map((n, i) => `<li>
+      <input type="checkbox" ${checked.has(n) ? "checked" : ""} data-m="${esc(n)}" aria-label="${esc(n)}">
       <span><span class="dot ${oClass(outletByName(n))}"></span>${esc(n)}</span>
-      <button type="button" data-up="${i}" ${i===0?"disabled":""} aria-label="Выше">↑</button>
-      <button type="button" data-down="${i}" ${i===order.length-1?"disabled":""} aria-label="Ниже">↓</button></li>`).join("");
+      <button type="button" class="ndw-btn ndw-btn--outline" data-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="${esc(t("lblMoveUp"))}">↑</button>
+      <button type="button" class="ndw-btn ndw-btn--outline" data-down="${i}" ${i === order.length - 1 ? "disabled" : ""} aria-label="${esc(t("lblMoveDown"))}">↓</button>
+    </li>`).join("");
   };
-  const syncPolicy = () => { $("#gTolWrap").hidden = $("#gPolicy").value!=="fastest"; };
 
-  f.innerHTML = `<h3>${isNew?"Новая группа":"Группа "+esc(name)}</h3>
-    <label for="gName">Название</label><input id="gName" value="${esc(g.name)}" required pattern="[A-Za-z0-9_.\\-]+" title="латиница, цифры, _ . -">
-    <label for="gPolicy">Какой выход выбирать</label><select id="gPolicy">
-      <option value="fallback" ${g.policy==="fallback"?"selected":""}>первый живой по порядку</option>
-      <option value="fastest" ${g.policy==="fastest"?"selected":""}>с минимальной задержкой</option></select>
-    <div id="gTolWrap"><label for="gTol">Переключаться, если новый быстрее хотя бы на, мс</label><input id="gTol" type="number" min="0" value="${g.tolerance_ms||0}"></div>
-    <label>Выходы (порядок = приоритет)</label><ul class="members" id="gMembers"></ul>
-    <label for="gListen">SOCKS5 слушает</label><input id="gListen" value="${esc(g.listen||"")}" required>
-    <p class="hint">На этот адрес в Keenetic создаётся прокси-подключение (SOCKS5), и в него направляются списки доменов. kproxyd в Keenetic ничего не меняет.</p>
-    <div class="two">
-      <div><label for="gUser">Логин SOCKS5 (необязательно)</label><input id="gUser" value="${esc(g.user||"")}" autocomplete="off"></div>
-      <div><label for="gPass">Пароль SOCKS5</label><input id="gPass" value="${esc(g.password||"")}" autocomplete="off"></div>
+  const syncPolicy = () => { $("#gTolWrap").hidden = $("#gPolicy").value !== "fastest"; };
+
+  f.innerHTML = `<h3>${isNew ? esc(t("newGroupTitle")) : esc(t("editGroupTitle")(name))}</h3>
+    <label for="gName">${esc(t("lblName"))}</label>
+    <input id="gName" value="${esc(g.name)}" required pattern="[A-Za-z0-9_.\\-]+" title="${esc(t("nameTitle"))}">
+    
+    <label for="gPolicy">${esc(t("lblPolicy"))}</label>
+    <select id="gPolicy">
+      <option value="fallback" ${g.policy === "fallback" ? "selected" : ""}>${esc(t("optFallback"))}</option>
+      <option value="fastest" ${g.policy === "fastest" ? "selected" : ""}>${esc(t("optFastest"))}</option>
+    </select>
+    
+    <div id="gTolWrap">
+      <label for="gTol">${esc(t("lblTol"))}</label>
+      <input id="gTol" type="number" min="0" value="${g.tolerance_ms || 0}">
     </div>
-    <p class="hint">Если слушаете не на 127.0.0.1, задайте логин и пароль: иначе прокси будет открыт для всей сети.</p>
-    <label for="gAll">Если все выходы группы недоступны</label><select id="gAll">
-      <option value="reject" ${g.all_down==="reject"?"selected":""}>блокировать (ничего не утекает к провайдеру)</option>
-      <option value="isp" ${g.all_down==="isp"?"selected":""}>пускать через провайдера</option></select>
-    <label for="gMax">Не больше соединений одновременно</label><input id="gMax" type="number" min="1" max="10000" required value="${g.max_conns||256}">
-    <p class="hint">Сверх предела новые соединения отклоняются — чтобы kproxyd не занял всю память роутера. Соединение занимает до ~100 КБ.</p>
-    <div class="chk"><input type="checkbox" id="gKill" ${g.kill_on_switch?"checked":""}><label for="gKill" style="margin:0;color:var(--ink)">Рвать открытые соединения при любом переключении</label></div>
-    <p class="hint">Соединения через упавший выход закрываются всегда — клиенты сразу переподключаются через новый.</p>
+
+    <label>${esc(t("lblMembers"))}</label>
+    <ul class="members" id="gMembers"></ul>
+
+    <label for="gListen">${esc(t("lblSocksListen"))}</label>
+    <input id="gListen" value="${esc(g.listen || "")}" required>
+    <p class="hint">${esc(t("socksListenHint"))}</p>
+
+    <div class="two">
+      <div>
+        <label for="gUser">${esc(t("lblSocksUser"))}</label>
+        <input id="gUser" value="${esc(g.user || "")}" autocomplete="off">
+      </div>
+      <div>
+        <label for="gPass">${esc(t("lblSocksPass"))}</label>
+        <input id="gPass" value="${esc(g.password || "")}" autocomplete="off">
+      </div>
+    </div>
+    <p class="hint">${esc(t("socksAuthHint"))}</p>
+
+    <label for="gAll">${esc(t("lblAllDown"))}</label>
+    <select id="gAll">
+      <option value="reject" ${g.all_down === "reject" ? "selected" : ""}>${esc(t("optReject"))}</option>
+      <option value="isp" ${g.all_down === "isp" ? "selected" : ""}>${esc(t("optIsp"))}</option>
+    </select>
+
+    <label for="gMax">${esc(t("lblMaxConns"))}</label>
+    <input id="gMax" type="number" min="1" max="10000" required value="${g.max_conns || 256}">
+    <p class="hint">${esc(t("maxConnsHint"))}</p>
+
+    <div class="chk">
+      <input type="checkbox" id="gKill" ${g.kill_on_switch ? "checked" : ""}>
+      <label for="gKill" style="margin:0; color:var(--primary-text);">${esc(t("lblKill"))}</label>
+    </div>
+    <p class="hint">${esc(t("killHint"))}</p>
+
     <div class="foot">
-      ${isNew?"":`<button type="button" class="danger left" id="gDel">Удалить группу</button>`}
-      <button value="cancel" formnovalidate>Отмена</button>
-      <button type="button" class="primary" id="gSave">Сохранить</button>
+      ${isNew ? "" : `<button type="button" class="ndw-btn ndw-btn--danger left" id="gDel">${esc(t("delGroupBtn"))}</button>`}
+      <button type="button" class="ndw-btn ndw-btn--outline" onclick="$('#dlg').close()">${esc(t("cancelBtn"))}</button>
+      <button type="button" class="ndw-btn ndw-btn--primary" id="gSave">${esc(t("saveBtn"))}</button>
     </div>`;
-  drawMembers(); syncPolicy();
+
+  drawMembers();
+  syncPolicy();
   $("#gPolicy").onchange = syncPolicy;
   $("#gMembers").onclick = e => {
-    const t = e.target;
-    if(t.dataset.m!==undefined){ t.checked?checked.add(t.dataset.m):checked.delete(t.dataset.m); return; }
-    const i = +(t.dataset.up ?? t.dataset.down ?? NaN); if(isNaN(i)) return;
-    const j = t.dataset.up!==undefined ? i-1 : i+1; [order[i],order[j]]=[order[j],order[i]]; drawMembers();
+    const target = e.target;
+    if(target.dataset.m !== undefined){
+      target.checked ? checked.add(target.dataset.m) : checked.delete(target.dataset.m);
+      return;
+    }
+    const up = target.dataset.up, down = target.dataset.down;
+    const i = +(up ?? down ?? NaN);
+    if(isNaN(i)) return;
+    const j = up !== undefined ? i - 1 : i + 1;
+    [order[i], order[j]] = [order[j], order[i]];
+    drawMembers();
   };
+
   $("#gSave").onclick = async () => {
     if(!f.reportValidity()) return;
-    const n = {...g,
-      name: $("#gName").value.trim(), policy: $("#gPolicy").value,
-      tolerance_ms: +$("#gTol").value||0, members: order.filter(x=>checked.has(x)),
+    const n = {
+      ...g,
+      name: $("#gName").value.trim(),
+      policy: $("#gPolicy").value,
+      tolerance_ms: +$("#gTol").value || 0,
+      members: order.filter(x => checked.has(x)),
       listen: $("#gListen").value.trim(),
-      user: $("#gUser").value.trim(), password: $("#gPass").value,
-      all_down: $("#gAll").value, kill_on_switch: $("#gKill").checked, max_conns: +$("#gMax").value };
+      user: $("#gUser").value.trim(),
+      password: $("#gPass").value,
+      all_down: $("#gAll").value,
+      kill_on_switch: $("#gKill").checked,
+      max_conns: +$("#gMax").value
+    };
     if(n.pinned && !n.members.includes(n.pinned)) n.pinned = "";
-    if(isNew) cfg.groups.push(n); else cfg.groups[cfg.groups.findIndex(x=>x.name===name)] = n;
-    if(await saveConfig(cfg, "Группа сохранена")) $("#dlg").close();
+    if(isNew) cfg.groups.push(n);
+    else cfg.groups[cfg.groups.findIndex(x => x.name === name)] = n;
+
+    if(await saveConfig(cfg, t("groupSaved"))) $("#dlg").close();
   };
+
   if(!isNew){
     $("#gDel").onclick = async () => {
-      if(!confirm(`Удалить группу ${name}? Прокси-подключение и маршруты списков в Keenetic kproxyd не трогает — уберите их сами.`)) return;
-      cfg.groups = cfg.groups.filter(x=>x.name!==name);
-      if(await saveConfig(cfg, "Группа удалена")) $("#dlg").close();
+      if(!confirm(t("delGroupConfirm")(name))) return;
+      cfg.groups = cfg.groups.filter(x => x.name !== name);
+      if(await saveConfig(cfg, t("groupDeleted"))) $("#dlg").close();
     };
   }
+
   $("#dlg").showModal();
 }
 
-/* ---------- выходы ---------- */
+/* ==========================================================================
+   Outlets Tab
+   ========================================================================== */
 function spark(h){
   if(!h || !h.length) return "";
-  const W=300, H=36, ok=h.filter(v=>v>0), max=Math.max(50,...ok), n=Math.max(h.length-1,1);
-  let d="", ticks="";
-  h.forEach((v,i)=>{ const x=(i/n*W).toFixed(1);
-    if(v>0){ const y=(H-3-(v/max)*(H-8)).toFixed(1); d += (d&&h[i-1]>0?"L":"M")+x+" "+y; }
-    else ticks += `<line x1="${x}" x2="${x}" y1="${H-10}" y2="${H}" stroke="var(--bad)" stroke-width="2"/>`; });
-  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="Задержка за последние проверки">
-    <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.6" vector-effect="non-scaling-stroke"/>${ticks}</svg>`;
+  const W = 300, H = 50, ok = h.filter(v => v > 0), max = Math.max(50, ...ok), n = Math.max(h.length - 1, 1);
+  let d = "", ticks = "";
+  h.forEach((v, i) => {
+    const x = (i / n * W).toFixed(1);
+    if(v > 0){
+      const y = (H - 4 - (v / max) * (H - 12)).toFixed(1);
+      d += (d && h[i-1] > 0 ? "L" : "M") + x + " " + y;
+    } else {
+      ticks += `<line x1="${x}" x2="${x}" y1="${H - 14}" y2="${H}" stroke="var(--indicator-offline)" stroke-width="2"/>`;
+    }
+  });
+
+  const fillPath = d ? `${d} L${W} ${H} L0 ${H} Z` : "";
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${esc(t("sparkAria"))}">
+    <defs>
+      <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--chart-fill-start)"/>
+        <stop offset="100%" stop-color="var(--chart-fill-stop)"/>
+      </linearGradient>
+    </defs>
+    ${fillPath ? `<path d="${fillPath}" fill="url(#sparkGrad)"/>` : ""}
+    <path d="${d}" fill="none" stroke="var(--chart-line)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+    ${ticks}
+  </svg>`;
 }
 
 function renderOutlets(){
   const el = $("#tab-outlets"), cfg = S.config;
-  const known = new Set(cfg.outlets.map(o=>o.iface));
-  const found = S.k_ifaces.filter(i=>i.type==="Wireguard" || /^Wireguard\d+$/.test(i.id) || /^OpenVPN|^IKE|^SSTP|^L2TP|^PPTP/.test(i.id)).filter(i=>!known.has(i.id));
-  const cards = cfg.outlets.map(oc=>{
-    const o = outletByName(oc.name)||{}; const cls=oClass(o);
-    const inGroups = cfg.groups.filter(g=>g.members.includes(oc.name)).map(g=>g.name);
+  const known = new Set(cfg.outlets.map(o => o.iface));
+  const found = S.k_ifaces.filter(i => i.type === "Wireguard" || /^Wireguard\d+$/.test(i.id) || /^OpenVPN|^IKE|^SSTP|^L2TP|^PPTP/.test(i.id)).filter(i => !known.has(i.id));
+
+  const cards = cfg.outlets.map(oc => {
+    const o = outletByName(oc.name) || {};
+    const isOnline = oc.enabled && o.healthy;
+    const inGroups = cfg.groups.filter(g => g.members.includes(oc.name)).map(g => g.name);
+
     return `<article class="card">
-      <div class="row"><h2><span class="dot ${cls}"></span>${esc(oc.name)}</h2>
-        <button data-act="toggleOutlet" data-o="${esc(oc.name)}">${oc.enabled?"Выключить":"Включить"}</button></div>
-      <div class="meta num">${oc.enabled ? (o.healthy? `доступен · ${ms(o.ewma)} · стабилен ${ago(o.up_since)}` : `недоступен`) : "выключен, не проверяется"}</div>
+      <div class="card__header row">
+        <div class="card__title-row" style="display:flex; align-items:center; gap:12px;">
+          <!-- Keenetic Slider Toggle Switch -->
+          <label class="ndw-toggle" title="${oc.enabled ? t("disabled") : t("available")}">
+            <input type="checkbox" ${oc.enabled ? "checked" : ""} data-act="toggleOutlet" data-o="${esc(oc.name)}">
+            <span class="ndw-toggle__track"></span>
+            <span class="ndw-toggle__thumb"></span>
+          </label>
+          <div>
+            <h2>${esc(oc.name)}</h2>
+            <div class="meta">${esc(oc.iface)} · ${esc(o.dev || oc.dev || "?")}</div>
+          </div>
+        </div>
+        <button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="editOutlet" data-o="${esc(oc.name)}">${esc(t("editBtn"))}</button>
+      </div>
+
+      <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+        <span class="ndw-chip ${oc.enabled ? (o.healthy ? "ndw-chip--success" : "ndw-chip--danger") : "ndw-chip--tag"}">
+          <span class="dot"></span>
+          <span>${oc.enabled ? (o.healthy ? t("available") : t("unavailable")) : t("disabled")}</span>
+        </span>
+        <span class="meta num">${oc.enabled ? `${ms(o.ewma)}${o.up_since ? ` · ${t("stableFor")}${formatDuration(o.up_since)}` : ""}` : t("disabledNotProbed")}</span>
+      </div>
+
       ${spark(o.history)}
-      <dl class="kv">
-        <dt>Интерфейс</dt><dd>${esc(oc.iface)} / ${esc(o.dev||oc.dev||"?")}</dd>
-        <dt>Keenetic</dt><dd>${o.k_connected==="yes"?"подключён":(o.k_connected==="no"?"не подключён":"—")}</dd>
-        ${o.handshake?`<dt>Рукопожатие</dt><dd>${esc(o.handshake)}</dd>`:""}
-        <dt>Соединений</dt><dd class="num">${o.conns||0}</dd>
-        <dt>В группах</dt><dd>${inGroups.length?esc(inGroups.join(", ")):"ни в одной"}</dd>
-        <dt>Проверка</dt><dd>${ago(o.last_check)} назад</dd>
-      </dl>
-      ${o.last_err?`<div class="err" style="margin-top:6px">${esc(o.last_err)}</div>`:""}
-      <div class="foot"><button data-act="editOutlet" data-o="${esc(oc.name)}">Изменить</button></div>
+
+      <div class="wan-info-grid">
+        <div class="wan-property">
+          <span class="wan-property__label">${esc(t("lblKeenetic"))}</span>
+          <span class="wan-property__value" style="color:${o.k_connected === "yes" ? "var(--indicator-online)" : "inherit"};">
+            ${o.k_connected === "yes" ? t("connected") : (o.k_connected === "no" ? t("notConnected") : "—")}
+          </span>
+        </div>
+        <div class="wan-property">
+          <span class="wan-property__label">${esc(t("lblHandshake"))}</span>
+          <span class="wan-property__value">${esc(o.handshake || "—")}</span>
+        </div>
+        <div class="wan-property">
+          <span class="wan-property__label">${esc(t("lblInGroups"))}</span>
+          <span class="wan-property__value">${inGroups.length ? esc(inGroups.join(", ")) : t("none")}</span>
+        </div>
+        <div class="wan-property">
+          <span class="wan-property__label">${esc(t("lblConnections"))}</span>
+          <span class="wan-property__value num">${o.conns || 0}</span>
+        </div>
+        <div class="wan-property" style="grid-column: 1 / -1;">
+          <span class="wan-property__label">${esc(t("lblLastCheck"))}</span>
+          <span class="wan-property__value">${ago(o.last_check)}</span>
+        </div>
+      </div>
+      ${o.last_err ? `<div class="err" style="margin-top:6px;">${esc(o.last_err)}</div>` : ""}
     </article>`;
   }).join("");
-  const add = found.length ? `<h3 style="margin:22px 0 10px;font-size:16px">Туннели Keenetic, ещё не добавленные</h3>
-    <div class="grid">${found.map(i=>`<div class="card row"><div><span class="dot ${i.connected==="yes"?"up":"down"}"></span>${esc(i.id)}
-      <div class="meta">${esc(i.description||i.type)}</div></div><button class="primary" data-act="addOutlet" data-i="${esc(i.id)}" data-d="${esc(i.description)}">Добавить</button></div>`).join("")}</div>` : "";
-  el.innerHTML = (cfg.outlets.length ? `<div class="grid">${cards}</div>` :
-    `<div class="empty">Выходов пока нет. Выход — это туннель Keenetic (например, Wireguard0), через который kproxyd может отправлять трафик.</div>`) + add;
+
+  const add = found.length ? `<div style="margin-top:24px;">
+      <h3 style="font-size:16px; font-weight:700; margin-bottom:12px;">${esc(t("unconfiguredTunnelsTitle"))}</h3>
+      <div class="grid">${found.map(i => `<div class="card row" style="padding:14px 20px;">
+        <div>
+          <span class="dot ${i.connected === "yes" ? "up" : "down"}"></span>
+          <strong>${esc(i.id)}</strong>
+          <div class="meta">${esc(i.description || i.type)}</div>
+        </div>
+        <button class="ndw-btn ndw-btn--primary ndw-btn--small" data-act="addOutlet" data-i="${esc(i.id)}" data-d="${esc(i.description)}">${esc(t("addBtn"))}</button>
+      </div>`).join("")}</div>
+    </div>` : "";
+
+  el.innerHTML = (cfg.outlets.length ? `<div class="grid">${cards}</div>` : `<div class="empty">${esc(t("noOutletsYet"))}</div>`) + add;
 }
 
 async function addOutlet(id, desc){
   const cfg = clone(S.config);
-  let name = (desc||id).replace(/[^A-Za-z0-9_.-]+/g,"-").replace(/^-|-$/g,"") || id;
-  while(cfg.outlets.some(o=>o.name===name)) name += "-2";
-  cfg.outlets.push({name, iface:id, enabled:true});
-  await saveConfig(cfg, `Выход ${name} добавлен`);
+  let name = (desc || id).replace(/[^A-Za-z0-9_.-]+/g, "-").replace(/^-|-$/g, "") || id;
+  while(cfg.outlets.some(o => o.name === name)) name += "-2";
+  cfg.outlets.push({ name, iface: id, enabled: true });
+  await saveConfig(cfg, t("outletAdded")(name));
 }
+
 async function toggleOutlet(name){
-  const cfg = clone(S.config); const o = cfg.outlets.find(x=>x.name===name); o.enabled = !o.enabled;
-  await saveConfig(cfg, o.enabled?`${name} включён`:`${name} выключен`);
+  const cfg = clone(S.config);
+  const o = cfg.outlets.find(x => x.name === name);
+  if(!o) return;
+  o.enabled = !o.enabled;
+  await saveConfig(cfg, o.enabled ? t("outletEnabled")(name) : t("outletDisabled")(name));
 }
+
 function editOutlet(name){
-  const cfg = clone(S.config); const o = cfg.outlets.find(x=>x.name===name);
-  const used = cfg.groups.some(g=>g.members.includes(name));
+  const cfg = clone(S.config);
+  const o = cfg.outlets.find(x => x.name === name);
+  const used = cfg.groups.some(g => g.members.includes(name));
   const f = $("#dlgForm");
-  f.innerHTML = `<h3>Выход ${esc(name)}</h3>
-    <label for="oName">Название</label><input id="oName" value="${esc(o.name)}" required pattern="[A-Za-z0-9_.\\-]+">
-    <label for="oDev">Системное имя устройства</label><input id="oDev" value="${esc(o.dev||"")}" placeholder="определяется автоматически">
-    <p class="hint">Заполняйте, только если автоопределение ошиблось. Список устройств: <code>ls /sys/class/net</code>.</p>
+
+  f.innerHTML = `<h3>${esc(t("editOutletTitle")(name))}</h3>
+    <label for="oName">${esc(t("lblName"))}</label>
+    <input id="oName" value="${esc(o.name)}" required pattern="[A-Za-z0-9_.\\-]+">
+
+    <label for="oDev">${esc(t("lblDev"))}</label>
+    <input id="oDev" value="${esc(o.dev || "")}" placeholder="${esc(t("devPlaceholder"))}">
+    <p class="hint">${t("devHint")}</p>
+
     <div class="foot">
-      <button type="button" class="danger left" id="oDel" ${used?"disabled title='Сначала уберите выход из групп'":""}>Удалить</button>
-      <button value="cancel" formnovalidate>Отмена</button><button type="button" class="primary" id="oSave">Сохранить</button></div>`;
+      <button type="button" class="ndw-btn ndw-btn--danger left" id="oDel" ${used ? `disabled title="${esc(t("delDisabledTitle"))}"` : ""}>${esc(t("delOutletBtn"))}</button>
+      <button type="button" class="ndw-btn ndw-btn--outline" onclick="$('#dlg').close()">${esc(t("cancelBtn"))}</button>
+      <button type="button" class="ndw-btn ndw-btn--primary" id="oSave">${esc(t("saveBtn"))}</button>
+    </div>`;
+
   $("#oSave").onclick = async () => {
     if(!f.reportValidity()) return;
     const nn = $("#oName").value.trim();
-    if(nn!==name){
-      cfg.groups.forEach(g=>{ g.members = g.members.map(m=>m===name?nn:m); if(g.pinned===name) g.pinned=nn; });
+    if(nn !== name){
+      cfg.groups.forEach(g => {
+        g.members = g.members.map(m => m === name ? nn : m);
+        if(g.pinned === name) g.pinned = nn;
+      });
     }
-    o.name = nn; o.dev = $("#oDev").value.trim();
+    o.name = nn;
+    o.dev = $("#oDev").value.trim();
     if(await saveConfig(cfg)) $("#dlg").close();
   };
-  $("#oDel").onclick = async () => { cfg.outlets = cfg.outlets.filter(x=>x.name!==name); if(await saveConfig(cfg,"Выход удалён")) $("#dlg").close(); };
+
+  $("#oDel").onclick = async () => {
+    cfg.outlets = cfg.outlets.filter(x => x.name !== name);
+    if(await saveConfig(cfg, t("outletDeleted"))) $("#dlg").close();
+  };
+
   $("#dlg").showModal();
 }
 
-/* ---------- журнал ---------- */
+/* ==========================================================================
+   Event Log Tab
+   ========================================================================== */
 function renderLog(){
   const ev = S.events;
-  $("#tab-log").innerHTML = ev.length ? `<ul class="log">${ev.map(e=>`<li><time class="num" title="${esc(e.t)}">${new Date(e.t).toLocaleTimeString()}</time>
-    <span class="${esc(e.level)}">${esc(e.msg)}</span></li>`).join("")}</ul>` : `<div class="empty">Событий пока нет.</div>`;
+  $("#tab-log").innerHTML = ev.length
+    ? `<div class="card" style="padding:0; overflow:hidden;"><table class="event-table"><tbody>${ev.map(e => `<tr>
+        <td class="event-time" title="${esc(e.t)}">${new Date(e.t).toLocaleTimeString()}</td>
+        <td style="width:60px;"><span class="ndw-chip ${e.level === "error" ? "ndw-chip--danger" : "ndw-chip--success"}" style="padding:1px 6px;">${esc(e.level).toUpperCase()}</span></td>
+        <td>${esc(e.msg)}</td>
+      </tr>`).join("")}</tbody></table></div>`
+    : `<div class="empty">${esc(t("noEventsYet"))}</div>`;
 }
 
-/* ---------- настройки ---------- */
+/* ==========================================================================
+   Settings Tab
+   ========================================================================== */
 function renderSettings(){
   const c = S.config, p = c.probe;
   $("#tab-settings").innerHTML = `<div class="grid">
-    <form class="card" id="fProbe"><h2>Проверка выходов</h2>
-      <label for="pUrl">Адрес для проверки</label><input id="pUrl" value="${esc(p.url)}">
-      <label for="pDns">DNS для проверки</label><input id="pDns" value="${esc(p.dns||"")}" placeholder="1.1.1.1:53">
-      <p class="hint">Через этот DNS, тоже по туннелю, проверяются выходы и резолвятся имена в SOCKS5-запросах. <code>system</code> — использовать DNS роутера.</p>
-      <div class="two">
-        <div><label for="pInt">Интервал, с</label><input id="pInt" type="number" min="2" value="${p.interval_sec}"></div>
-        <div><label for="pTo">Таймаут, мс</label><input id="pTo" type="number" min="200" value="${p.timeout_ms}"></div>
-        <div><label for="pFail">Неудач подряд до «упал»</label><input id="pFail" type="number" min="1" value="${p.fail_threshold}"></div>
-        <div><label for="pRec">Успехов подряд до «жив»</label><input id="pRec" type="number" min="1" value="${p.recover_threshold}"></div>
+    <!-- Interface Language Card -->
+    <div class="card">
+      <h2>${esc(t("sectionLang"))}</h2>
+      <label for="settingLangSelect">${esc(t("lblLang"))}</label>
+      <select id="settingLangSelect" style="margin:4px 0 10px;">
+        <option value="en" ${currentLang === "en" ? "selected" : ""}>English (default)</option>
+        <option value="ru" ${currentLang === "ru" ? "selected" : ""}>Русский</option>
+        <option value="zh" ${currentLang === "zh" ? "selected" : ""}>简体中文 (Chinese)</option>
+      </select>
+      <p class="hint">${esc(t("langHint"))}</p>
+    </div>
+
+    <!-- Web Interface Access Card -->
+    <form class="card" id="fWeb">
+      <h2>${esc(t("sectionWeb"))}</h2>
+      <label for="wUser">${esc(t("lblUser"))}</label>
+      <input id="wUser" value="${esc(c.web.user)}" autocomplete="username">
+
+      <label for="wPass">${esc(t("lblPass"))}</label>
+      <input id="wPass" type="password" placeholder="${esc(t("passPlaceholder"))}" autocomplete="new-password">
+
+      <label for="wListen">${esc(t("lblListen"))}</label>
+      <input id="wListen" value="${esc(c.web.listen)}">
+      <p class="hint">${esc(t("webListenHint"))}</p>
+
+      <div class="foot">
+        <button type="button" class="ndw-btn ndw-btn--primary" id="wSave">${esc(t("saveBtn"))}</button>
       </div>
-      <label for="pRet">Возврат на приоритетный выход после его восстановления, с</label><input id="pRet" type="number" min="0" value="${p.return_delay_sec}">
-      <p class="hint">Задержка возврата защищает от «дребезга», когда основной узел то появляется, то пропадает.</p>
-      <div class="foot"><button type="button" class="primary" id="pSave">Сохранить</button></div>
     </form>
-    <form class="card" id="fWeb"><h2>Доступ к веб-интерфейсу</h2>
-      <label for="wUser">Логин</label><input id="wUser" value="${esc(c.web.user)}" autocomplete="username">
-      <label for="wPass">Новый пароль</label><input id="wPass" type="password" placeholder="оставьте пустым, чтобы не менять" autocomplete="new-password">
-      <label for="wListen">Адрес веб-интерфейса</label><input id="wListen" value="${esc(c.web.listen)}">
-      <p class="hint">Новый адрес начнёт работать после перезапуска kproxyd.</p>
-      <div class="foot"><button type="button" class="primary" id="wSave">Сохранить</button></div>
+
+    <!-- Probe Settings Card -->
+    <form class="card" id="fProbe" style="grid-column: 1 / -1;">
+      <h2>${esc(t("sectionProbe"))}</h2>
+      <div class="two">
+        <div>
+          <label for="pUrl">${esc(t("lblProbeUrl"))}</label>
+          <input id="pUrl" value="${esc(p.url)}">
+        </div>
+        <div>
+          <label for="pDns">${esc(t("lblProbeDns"))}</label>
+          <input id="pDns" value="${esc(p.dns || "")}" placeholder="1.1.1.1:53">
+        </div>
+      </div>
+      <p class="hint">${t("probeDnsHint")}</p>
+
+      <div class="two" style="margin-top:8px;">
+        <div>
+          <label for="pInt">${esc(t("lblInterval"))}</label>
+          <input id="pInt" type="number" min="2" value="${p.interval_sec}">
+        </div>
+        <div>
+          <label for="pTo">${esc(t("lblTimeout"))}</label>
+          <input id="pTo" type="number" min="200" value="${p.timeout_ms}">
+        </div>
+        <div>
+          <label for="pFail">${esc(t("lblFail"))}</label>
+          <input id="pFail" type="number" min="1" value="${p.fail_threshold}">
+        </div>
+        <div>
+          <label for="pRec">${esc(t("lblRecover"))}</label>
+          <input id="pRec" type="number" min="1" value="${p.recover_threshold}">
+        </div>
+      </div>
+
+      <label for="pRet" style="margin-top:12px;">${esc(t("lblReturn"))}</label>
+      <input id="pRet" type="number" min="0" value="${p.return_delay_sec}">
+      <p class="hint">${esc(t("returnHint"))}</p>
+
+      <div class="foot">
+        <button type="button" class="ndw-btn ndw-btn--primary" id="pSave">${esc(t("saveBtn"))}</button>
+      </div>
     </form>
   </div>
-  <div class="card" style="margin-top:14px"><h2>Конфигурация целиком</h2>
-    <p class="hint">Для тонкой настройки. Пароль веб-интерфейса здесь не показывается; пустое значение сохраняет текущий.</p>
-    <textarea id="raw" spellcheck="false" aria-label="Конфигурация JSON">${esc(JSON.stringify(c,null,2))}</textarea>
-    <div class="foot"><button type="button" id="rawReset">Отменить правки</button><button type="button" class="primary" id="rawSave">Сохранить JSON</button></div>
+
+  <!-- Raw JSON Config Card -->
+  <div class="card" style="margin-top:20px;">
+    <h2>${esc(t("sectionRaw"))}</h2>
+    <p class="hint">${esc(t("rawHint"))}</p>
+    <textarea id="raw" spellcheck="false" aria-label="JSON Configuration" style="margin-top:10px;">${esc(JSON.stringify(c, null, 2))}</textarea>
+    <div class="foot">
+      <button type="button" class="ndw-btn ndw-btn--outline" id="rawReset">${esc(t("rawResetBtn"))}</button>
+      <button type="button" class="ndw-btn ndw-btn--primary" id="rawSave">${esc(t("rawSaveBtn"))}</button>
+    </div>
   </div>
-  <p class="meta" style="margin-top:14px">kproxyd ${esc(S.version)} · работает ${ago(S.started_at)} · маршрут по умолчанию через ${esc(S.wan_dev||"?")}</p>`;
+
+  <p class="meta" style="margin-top:16px;">
+    ${esc(t("metaFooter")(S.version, ago(S.started_at), S.wan_dev || "?"))}
+  </p>`;
+
   settingsDirty = false;
+  $("#settingLangSelect").onchange = e => { changeLang(e.target.value); };
   $("#tab-settings").oninput = () => { settingsDirty = true; };
+
   $("#pSave").onclick = async () => {
     const cfg = clone(S.config);
-    cfg.probe = { ...cfg.probe, url:$("#pUrl").value.trim(), dns:$("#pDns").value.trim(), interval_sec:+$("#pInt").value, timeout_ms:+$("#pTo").value,
-      fail_threshold:+$("#pFail").value, recover_threshold:+$("#pRec").value, return_delay_sec:+$("#pRet").value };
-    if(await saveConfig(cfg)){ settingsDirty=false; renderSettings(); }
+    cfg.probe = {
+      ...cfg.probe,
+      url: $("#pUrl").value.trim(),
+      dns: $("#pDns").value.trim(),
+      interval_sec: +$("#pInt").value,
+      timeout_ms: +$("#pTo").value,
+      fail_threshold: +$("#pFail").value,
+      recover_threshold: +$("#pRec").value,
+      return_delay_sec: +$("#pRet").value
+    };
+    if(await saveConfig(cfg)){ settingsDirty = false; renderSettings(); }
   };
+
   $("#wSave").onclick = async () => {
     const cfg = clone(S.config);
-    cfg.web.user = $("#wUser").value.trim(); cfg.web.listen = $("#wListen").value.trim(); cfg.web.password = $("#wPass").value;
-    if(await saveConfig(cfg, cfg.web.password?"Сохранено. Браузер попросит войти с новым паролем":"Сохранено")){ settingsDirty=false; renderSettings(); }
+    cfg.web.user = $("#wUser").value.trim();
+    cfg.web.listen = $("#wListen").value.trim();
+    cfg.web.password = $("#wPass").value;
+    if(await saveConfig(cfg, cfg.web.password ? t("webPassSavedNotice") : t("savedToast"))){
+      settingsDirty = false; renderSettings();
+    }
   };
-  $("#rawReset").onclick = () => { settingsDirty=false; renderSettings(); };
+
+  $("#rawReset").onclick = () => { settingsDirty = false; renderSettings(); };
   $("#rawSave").onclick = async () => {
-    let cfg; try{ cfg = JSON.parse($("#raw").value); }catch(e){ toast("Ошибка в JSON: "+e.message); return; }
-    if(await saveConfig(cfg)){ settingsDirty=false; renderSettings(); }
+    let cfg;
+    try {
+      cfg = JSON.parse($("#raw").value);
+    } catch(e) {
+      toast(t("jsonError") + e.message);
+      return;
+    }
+    if(await saveConfig(cfg)){ settingsDirty = false; renderSettings(); }
   };
 }
 
-/* ---------- каркас ---------- */
-// Кнопки в карточках: данные только в data-атрибутах, чтобы имена не попадали в код JS.
+/* ==========================================================================
+   Event Listeners & Initialization
+   ========================================================================== */
 document.addEventListener("click", e => {
-  const b = e.target.closest("button[data-act]");
+  const b = e.target.closest("button[data-act], input[data-act]");
   if(!b) return;
   const d = b.dataset;
   switch(d.act){
@@ -475,17 +1761,71 @@ document.addEventListener("click", e => {
     case "addOutlet": addOutlet(d.i, d.d); break;
   }
 });
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
-  tab = b.dataset.tab;
-  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-  document.querySelectorAll("section[id^=tab-]").forEach(s=>s.hidden = s.id!=="tab-"+tab);
-  if(tab==="settings" && S){ settingsDirty=false; renderSettings(); }
+
+// Sidebar menu navigation
+document.querySelectorAll(".menu-item[data-tab]").forEach(b => {
+  b.onclick = () => {
+    tab = b.dataset.tab;
+    document.querySelectorAll(".menu-item").forEach(x => x.classList.toggle("active", x === b));
+    document.querySelectorAll("section[id^=tab-]").forEach(s => s.hidden = s.id !== "tab-" + tab);
+
+    const captions = {
+      groups: t("navGroups"),
+      outlets: t("navOutlets"),
+      log: t("navLog"),
+      settings: t("navSettings")
+    };
+    $("#headerCaption").textContent = captions[tab] || tab;
+
+    if(tab === "settings" && S){ settingsDirty = false; renderSettings(); }
+
+    if(window.innerWidth <= 768){
+      $("#sidebar").classList.remove("mobile-open");
+    }
+  };
 });
-$("#bProbe").onclick = async () => { try{ await api("POST","/api/probe"); toast("Проверка запущена"); setTimeout(load,1500); }catch(e){ toast(e.message); } };
-$("#bSync").onclick = async () => { try{ await api("POST","/api/keenetic/refresh"); toast("Конфигурация Keenetic перечитывается"); setTimeout(load,1500); }catch(e){ toast(e.message); } };
+
+// Sidebar Toggle Button
+$("#btnToggleSidebar").onclick = () => {
+  if(window.innerWidth <= 768){
+    $("#sidebar").classList.toggle("mobile-open");
+  } else {
+    $("#sidebar").classList.toggle("collapsed");
+  }
+};
+
+// Theme Toggle Button
+$("#btnThemeToggle").onclick = toggleTheme;
+
+// Header Action Buttons
+$("#bProbe").onclick = async () => {
+  try {
+    await api("POST", "/api/probe");
+    toast(t("probingToast"));
+    setTimeout(load, 1500);
+  } catch(e) {
+    toast(e.message);
+  }
+};
+
+$("#bSync").onclick = async () => {
+  try {
+    await api("POST", "/api/keenetic/refresh");
+    toast(t("refreshingToast"));
+    setTimeout(load, 1500);
+  } catch(e) {
+    toast(e.message);
+  }
+};
+
+// Initialize Theme & Language
+applyTheme(currentTheme);
+changeLang(currentLang);
 
 load();
-setInterval(()=>{ if(!document.hidden && !$("#dlg").open) load(); }, 3000);
+setInterval(() => {
+  if(!document.hidden && !$("#dlg").open) load();
+}, 3000);
 </script>
 </body>
 </html>
