@@ -176,7 +176,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
   color: var(--status-success-text);
   font-size: 12px; font-weight: 500;
   padding: 4px 10px; border-radius: 14px;
+  min-width: 0; max-width: 45vw;
 }
+/* длинный статус (например, с ошибкой Keenetic) не раздувает шапку: полный текст — в подсказке */
+#sum { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.indicator-dot { flex-shrink: 0; }
 .header__status-badge.err {
   background: var(--status-warning-background);
   border-color: var(--status-warning-border);
@@ -438,7 +442,7 @@ textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12p
 .members li { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--table-border); }
 .members li:last-child { border-bottom: none; }
 .members input { width: auto; margin: 0; }
-.members span { flex: 1; display: flex; align-items: center; gap: 6px; }
+.members li > span { flex: 1; display: flex; align-items: center; gap: 6px; }
 .members button { padding: 2px 8px; font-size: 12px; }
 
 /* Event Log */
@@ -478,7 +482,16 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
   .sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 16px rgba(0,0,0,0.2); }
   .main-content { padding: 16px; }
   .two { grid-template-columns: 1fr; }
-  .header { padding: 0 14px; }
+  .header { padding: 0 10px; gap: 8px; }
+  /* шапка на телефоне: без подписи вкладки, кнопки только иконками, статус в одну строку */
+  .header__caption { display: none; }
+  .header__left { gap: 8px; flex-shrink: 0; }
+  .header__right { gap: 6px; min-width: 0; flex: 1 1 auto; justify-content: flex-end; }
+  .header__status-badge { max-width: none; }
+  #txtProbe, #txtSync { display: none; }
+  #bProbe, #bSync { padding: 0 9px; flex-shrink: 0; }
+  .theme-toggle-btn { flex-shrink: 0; }
+  .grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -1017,8 +1030,14 @@ const i18n = {
 let S = null;                  // latest state from backend
 let tab = "groups";
 let settingsDirty = false;
-let currentLang = localStorage.getItem("kproxyd_lang") || "en";
-let currentTheme = localStorage.getItem("kproxyd_theme") || "light";
+// хранилище браузера может быть недоступно (приватный режим, запрет сайтам) — тогда просто не запоминаем
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e) { return null; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch(e) {} }
+};
+let currentLang = store.get("kproxyd_lang");
+if(!i18n[currentLang]) currentLang = "en";
+let currentTheme = store.get("kproxyd_theme") === "dark" ? "dark" : "light";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1039,7 +1058,7 @@ function applyTheme(theme) {
   document.documentElement.classList.toggle("light", theme !== "dark");
   $("#iconSun").style.display = theme === "dark" ? "block" : "none";
   $("#iconMoon").style.display = theme === "dark" ? "none" : "block";
-  localStorage.setItem("kproxyd_theme", theme);
+  store.set("kproxyd_theme", theme);
 }
 
 function toggleTheme() {
@@ -1048,7 +1067,7 @@ function toggleTheme() {
 
 function changeLang(l) {
   currentLang = l;
-  localStorage.setItem("kproxyd_lang", l);
+  store.set("kproxyd_lang", l);
   document.documentElement.lang = l;
   updateStaticLabels();
   if (S) render();
@@ -1063,6 +1082,8 @@ function updateStaticLabels() {
   $("#txtTabSettings").textContent = t("navSettings");
   $("#txtProbe").textContent = t("probeBtn");
   $("#txtSync").textContent = t("syncBtn");
+  $("#bProbe").title = t("probeBtn");
+  $("#bSync").title = t("syncBtn");
 
   const captions = {
     groups: t("navGroups"),
@@ -1103,6 +1124,7 @@ async function load(){
   } catch(e) {
     $("#headerBadge").classList.add("err");
     $("#sum").textContent = t("noConnection") + e.message;
+    $("#headerBadge").title = $("#sum").textContent;
   }
 }
 
@@ -1167,13 +1189,22 @@ function render(){
     b.classList.remove("err");
     $("#sum").textContent = t("sumStatus")(up, on);
   }
+  b.title = $("#sum").textContent;
 
   updateStaticLabels();
   renderGroups();
   renderOutlets();
   renderLog();
-  if(tab === "settings" && !settingsDirty) renderSettings();
+  // настройки перерисовываем только при изменении конфига: иначе раз в 3 секунды закрывался бы
+  // открытый список и сбрасывался фокус в полях
+  if(tab === "settings"){
+    if(!settingsDirty && JSON.stringify(S.config) !== settingsKey) renderSettings();
+    else if($("#setMeta")) $("#setMeta").textContent = metaText();
+  }
 }
+
+let settingsKey = "";
+const metaText = () => t("metaFooter")(S.version, formatDuration(S.started_at), S.wan_dev || "?");
 
 /* ==========================================================================
    Groups Tab
@@ -1253,6 +1284,13 @@ function setupHelp(g){
   let n = 0; while(used.has("Proxy" + n)) n++;
   const px = (st.proxy_ifaces || [])[0] || "Proxy" + n;
   const auth = g.user ? `\ninterface ${px} authentication identity ${g.user}\ninterface ${px} authentication password PASSWORD` : "";
+  // адрес, логин и имя подключения приходят из конфигов — в HTML только экранированными
+  const cli = `interface ${px}
+interface ${px} proxy protocol socks5
+interface ${px} proxy upstream ${h} ${p}${auth}
+interface ${px} up
+dns-proxy route object-group LIST_NAME ${px} auto reject
+system configuration save`;
 
   return `<details class="keenetic-help-box" data-setup="${esc(g.name)}" ${openSetup.has(g.name) ? "open" : ""}>
     <summary>
@@ -1261,28 +1299,41 @@ function setupHelp(g){
     </summary>
     <ol>
       <li>${t("setupStep1")}</li>
-      <li>${t("setupStep2")(h, p, !!g.user)}</li>
+      <li>${t("setupStep2")(esc(h), esc(p), !!g.user)}</li>
       <li>${t("setupStep3")}</li>
     </ol>
     <div style="font-size:12px; margin-top:4px;">${esc(t("setupCommandsIntro"))}</div>
     <div class="keenetic-cli-code">
       <button type="button" class="ndw-btn ndw-btn--outline ndw-btn--small cli-copy-btn" onclick="copyCli(this)">${esc(t("copyBtn"))}</button>
-      <pre style="margin:0; font-family:inherit;">interface ${px}
-interface ${px} proxy protocol socks5
-interface ${px} proxy upstream ${h} ${p}${auth}
-interface ${px} up
-dns-proxy route object-group LIST_NAME ${px} auto reject
-system configuration save</pre>
+      <pre style="margin:0; font-family:inherit;">${esc(cli)}</pre>
     </div>
     <p class="hint">${esc(t("setupHint"))}</p>
   </details>`;
 }
 
+// navigator.clipboard есть только в защищённом контексте (HTTPS или localhost), а веб-интерфейс
+// на роутере открывают по http://192.168.1.1 — там копируем через выделение текста
 function copyCli(btn) {
   const pre = btn.parentElement.querySelector("pre");
-  if(pre) {
-    navigator.clipboard.writeText(pre.textContent).then(() => toast(t("copiedToast")));
+  if(!pre) return;
+  const text = pre.textContent;
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(() => toast(t("copiedToast")), () => copyFallback(text));
+  } else {
+    copyFallback(text);
   }
+}
+function copyFallback(text){
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.cssText = "position:fixed; top:0; left:0; opacity:0;";
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch(e) {}
+  ta.remove();
+  if(ok) toast(t("copiedToast"));
 }
 
 async function pin(group, outlet){
@@ -1432,18 +1483,24 @@ function editGroup(name){
 function spark(h){
   if(!h || !h.length) return "";
   const W = 300, H = 50, ok = h.filter(v => v > 0), max = Math.max(50, ...ok), n = Math.max(h.length - 1, 1);
-  let d = "", ticks = "";
+  // неудачные замеры рвут линию; заливка строится под каждым непрерывным отрезком отдельно
+  let d = "", fillPath = "", ticks = "", seg = [];
+  const flush = () => {
+    if(seg.length) fillPath += `M${seg[0][0]} ${H}` + seg.map(([x, y]) => `L${x} ${y}`).join("") + `L${seg[seg.length - 1][0]} ${H}Z`;
+    seg = [];
+  };
   h.forEach((v, i) => {
     const x = (i / n * W).toFixed(1);
     if(v > 0){
       const y = (H - 4 - (v / max) * (H - 12)).toFixed(1);
-      d += (d && h[i-1] > 0 ? "L" : "M") + x + " " + y;
+      d += (seg.length ? "L" : "M") + x + " " + y;
+      seg.push([x, y]);
     } else {
+      flush();
       ticks += `<line x1="${x}" x2="${x}" y1="${H - 14}" y2="${H}" stroke="var(--indicator-offline)" stroke-width="2"/>`;
     }
   });
-
-  const fillPath = d ? `${d} L${W} ${H} L0 ${H} Z` : "";
+  flush();
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${esc(t("sparkAria"))}">
     <defs>
       <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1489,7 +1546,7 @@ function renderOutlets(){
           <span class="dot"></span>
           <span>${oc.enabled ? (o.healthy ? t("available") : t("unavailable")) : t("disabled")}</span>
         </span>
-        <span class="meta num">${oc.enabled ? `${ms(o.ewma)}${o.up_since ? ` · ${t("stableFor")}${formatDuration(o.up_since)}` : ""}` : t("disabledNotProbed")}</span>
+        <span class="meta num">${oc.enabled ? `${ms(o.ewma)}${o.healthy && formatDuration(o.up_since) ? ` · ${t("stableFor")}${formatDuration(o.up_since)}` : ""}` : t("disabledNotProbed")}</span>
       </div>
 
       ${spark(o.history)}
@@ -1603,7 +1660,7 @@ function renderLog(){
   $("#tab-log").innerHTML = ev.length
     ? `<div class="card" style="padding:0; overflow:hidden;"><table class="event-table"><tbody>${ev.map(e => `<tr>
         <td class="event-time" title="${esc(e.t)}">${new Date(e.t).toLocaleTimeString()}</td>
-        <td style="width:60px;"><span class="ndw-chip ${e.level === "error" ? "ndw-chip--danger" : "ndw-chip--success"}" style="padding:1px 6px;">${esc(e.level).toUpperCase()}</span></td>
+        <td style="width:60px;"><span class="ndw-chip ${e.level === "error" || e.level === "warn" ? "ndw-chip--danger" : "ndw-chip--success"}" style="padding:1px 6px;">${esc(e.level).toUpperCase()}</span></td>
         <td>${esc(e.msg)}</td>
       </tr>`).join("")}</tbody></table></div>`
     : `<div class="empty">${esc(t("noEventsYet"))}</div>`;
@@ -1700,12 +1757,12 @@ function renderSettings(){
     </div>
   </div>
 
-  <p class="meta" style="margin-top:16px;">
-    ${esc(t("metaFooter")(S.version, ago(S.started_at), S.wan_dev || "?"))}
-  </p>`;
+  <p class="meta" style="margin-top:16px;" id="setMeta">${esc(metaText())}</p>`;
 
   settingsDirty = false;
-  $("#settingLangSelect").onchange = e => { changeLang(e.target.value); };
+  settingsKey = JSON.stringify(c);
+  // выбор языка — не правка настроек: без сброса флага вкладка осталась бы на прежнем языке
+  $("#settingLangSelect").onchange = e => { changeLang(e.target.value); renderSettings(); };
   $("#tab-settings").oninput = () => { settingsDirty = true; };
 
   $("#pSave").onclick = async () => {
