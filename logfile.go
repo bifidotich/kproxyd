@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"syscall"
 )
@@ -47,8 +49,16 @@ func (l *rotLog) open() error {
 }
 
 func (l *rotLog) rotate() {
-	if os.Rename(l.path, l.path+".1") == nil {
-		_ = l.open() // не открылся новый — пишем дальше в старый (уже .1), это лучше, чем терять записи
+	err := os.Rename(l.path, l.path+".1")
+	// ErrNotExist: прошлый раз файл перенесли, а новый не открылся (или журнал удалили руками)
+	if err == nil || errors.Is(err, fs.ErrNotExist) {
+		if l.open() == nil {
+			return
+		}
+	}
+	// ни перенести, ни открыть новый не вышло — обрезаем текущий: журнал не должен расти без границ
+	if l.f.Truncate(0) == nil {
+		l.size = 0
 	}
 }
 

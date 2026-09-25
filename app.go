@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"sort"
 	"strconv"
@@ -156,6 +157,12 @@ func (a *App) reconcileSocks(c *Config) {
 		if !ok || g.Listen != s.addr {
 			s.Close()
 			delete(a.socks, name)
+			// у удалённой группы никто больше не следит за выходами — её соединения закрываем сразу
+			if !ok {
+				if n := a.tracker.CloseGroup(name); n > 0 {
+					go a.logf("info", "группа %s удалена: закрыто %d соединений", name, n)
+				}
+			}
 			continue
 		}
 		s.SetAuth(g.User, g.Password)
@@ -604,6 +611,21 @@ func (a *App) inspect() {
 	}
 }
 
+// sameHost — адрес из подключения Keenetic совпадает с адресом группы. Сравниваем как IP
+// (::1 и 0:0:0:0:0:0:0:1 — один адрес), а localhost считаем 127.0.0.1.
+func sameHost(a, b string) bool {
+	canon := func(h string) string {
+		if strings.EqualFold(h, "localhost") {
+			return "127.0.0.1"
+		}
+		if ip, err := netip.ParseAddr(h); err == nil {
+			return ip.Unmap().String()
+		}
+		return strings.ToLower(h)
+	}
+	return canon(a) == canon(b)
+}
+
 // checkKeenetic ищет в конфигурации Keenetic Proxy-подключения на SOCKS5-адрес группы
 // и списки доменов, направленные в них.
 func checkKeenetic(g GroupCfg, rc *RunningConfig) (ifaces, lists []string, ok bool, msg string) {
@@ -612,7 +634,7 @@ func checkKeenetic(g GroupCfg, rc *RunningConfig) (ifaces, lists []string, ok bo
 	var wrongProto []string
 	for id, p := range rc.Proxies {
 		host, port, err := net.SplitHostPort(p.Upstream)
-		if err != nil || port != lport || !(anyHost || host == lhost) {
+		if err != nil || port != lport || !(anyHost || sameHost(host, lhost)) {
 			continue
 		}
 		if p.Protocol != "" && p.Protocol != "socks5" {

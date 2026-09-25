@@ -82,6 +82,7 @@ func (s *SocksServer) serve() {
 const (
 	repOK          = 0x00
 	repFail        = 0x01
+	repNotAllowed  = 0x02
 	repNetUnreach  = 0x03
 	repHostUnreach = 0x04
 	repRefused     = 0x05
@@ -158,6 +159,7 @@ func (s *SocksServer) handle(c net.Conn) {
 			return
 		}
 		host = string(b)
+		network = "tcp" // имя может разрешиться и в IPv6: Go попробует оба семейства (Happy Eyeballs)
 	case 4:
 		b := make([]byte, 16)
 		if _, err := io.ReadFull(c, b); err != nil {
@@ -187,6 +189,7 @@ func (s *SocksServer) handle(c net.Conn) {
 	} else {
 		d = tunnelDialer(dev, cfg.Probe.DNS, 10*time.Second)
 	}
+	guardDst(d)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	rc, err := d.DialContext(ctx, network, target)
 	cancel()
@@ -247,6 +250,8 @@ func reply(c net.Conn, code byte, a *net.TCPAddr) {
 
 func dialErrCode(err error) byte {
 	switch {
+	case errors.Is(err, errDstForbidden):
+		return repNotAllowed
 	case errors.Is(err, syscall.ECONNREFUSED):
 		return repRefused
 	case errors.Is(err, syscall.ENETUNREACH):
@@ -329,10 +334,19 @@ func (t *ConnTracker) Snapshot() []tracked {
 
 // CloseWhere рвёт соединения группы через указанный выход — клиенты переподключатся через новый.
 func (t *ConnTracker) CloseWhere(group, outlet string) int {
+	return t.closeIf(func(x *tracked) bool { return x.group == group && x.outlet == outlet })
+}
+
+// CloseGroup рвёт все соединения группы — её удалили или переименовали.
+func (t *ConnTracker) CloseGroup(group string) int {
+	return t.closeIf(func(x *tracked) bool { return x.group == group })
+}
+
+func (t *ConnTracker) closeIf(match func(*tracked) bool) int {
 	t.mu.Lock()
 	var victims []*tracked
 	for _, x := range t.m {
-		if x.group == group && x.outlet == outlet {
+		if match(x) {
 			victims = append(victims, x)
 		}
 	}
