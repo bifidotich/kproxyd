@@ -22,17 +22,18 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: false  # внешних зависимостей нет
 
       - name: Проверки
         run: |
           test -z "$(gofmt -l .)" || { gofmt -l .; echo "нужен gofmt"; exit 1; }
           go vet ./...
-          sh -n scripts/install.sh scripts/uninstall.sh scripts/S99kproxyd
+          for f in build.sh scripts/install.sh scripts/uninstall.sh scripts/S99kproxyd; do sh -n "$f"; done
 
       - name: Сборка
         run: |
@@ -42,7 +43,7 @@ jobs:
             VERSION="main-$(git rev-parse --short HEAD)"
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          VERSION="$VERSION" ./build.sh
+          VERSION="$VERSION" sh ./build.sh
           mkdir release
           cp dist/kproxyd-* scripts/S99kproxyd scripts/install.sh scripts/uninstall.sh release/
           # install.sh из релиза версии по умолчанию ставит именно эту версию
