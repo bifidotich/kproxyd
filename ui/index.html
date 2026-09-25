@@ -99,23 +99,24 @@ html.dark {
   --chart-fill-start: rgba(56, 189, 248, 0.35);
   --chart-fill-stop: rgba(56, 189, 248, 0.02);
   
-  --box-shadow-1: 0 4px 18px rgba(0, 0, 0, 0.4);
-  --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  --box-shadow-1: 0 5px 20px rgb(0 0 0 / 25%);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* ==========================================================================
+   Base & Reset
+   ========================================================================== */
 * { box-sizing: border-box; }
-html, body {
-  margin: 0; padding: 0; width: 100%; height: 100%;
-  font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 14px; line-height: 22px;
-  color: var(--primary-text);
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
   background-color: var(--dashboard-background);
+  color: var(--primary-text);
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  -moz-osx-font-smoothing: grayscale;
 }
-
-.num { font-variant-numeric: tabular-nums; }
-button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Main Container */
 .app-container {
@@ -174,11 +175,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: var(--status-success-background);
   border: 1px solid var(--status-success-border);
   color: var(--status-success-text);
-  font-size: 12px; font-weight: 500;
+  font-size: 12px; font-weight: 600;
   padding: 4px 10px; border-radius: 14px;
   min-width: 0; max-width: 45vw;
 }
-/* длинный статус (например, с ошибкой Keenetic) не раздувает шапку: полный текст — в подсказке */
 #sum { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .indicator-dot { flex-shrink: 0; }
 .header__status-badge.err {
@@ -251,17 +251,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .main-content {
   flex: 1; overflow-y: auto; padding: 24px 32px 40px;
 }
-.page-header { margin-bottom: 20px; }
-.page-title {
-  font-size: 20px; font-weight: 700; line-height: 28px;
-  margin: 0 0 4px; color: var(--primary-text);
-}
-.page-subtitle { font-size: 13px; color: var(--text-gray); margin: 0; }
 
 /* Cards & Grid */
 .grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 20px;
+}
+.settings-stack {
+  display: flex; flex-direction: column; gap: 20px;
+  max-width: 840px;
 }
 .card {
   background: var(--card-background);
@@ -327,7 +325,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ndw-chip--success .dot { background-color: var(--indicator-online); }
 .ndw-chip--danger .dot { background-color: var(--indicator-offline); }
 
-/* Route Track (Groups) */
+/* Route Track (Nodes) */
 .route-track { list-style: none; padding: 0; margin: 12px 0 10px; position: relative; }
 .route-item {
   position: relative; padding: 6px 0 6px 28px;
@@ -401,7 +399,7 @@ input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--primary-color);
 }
 label { display: block; margin: 10px 0 4px; color: var(--text-gray); font-size: 12px; }
-textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; min-height: 300px; }
+textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; min-height: 280px; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
 .chk { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
 .chk input { width: auto; }
@@ -460,7 +458,14 @@ dialog {
 }
 dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
 dialog form { padding: 22px; overflow: auto; max-height: 90vh; }
-dialog h3 { margin: 0 0 10px; font-size: 17px; font-weight: 700; }
+.dialog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.dialog-header h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.dialog-close-btn {
+  background: transparent; border: none; padding: 4px; border-radius: 4px;
+  color: var(--text-gray); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background-color 0.1s, color 0.1s;
+}
+.dialog-close-btn:hover { background-color: var(--menu-hover); color: var(--primary-text); }
 
 /* Toast */
 #toast {
@@ -483,13 +488,13 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
   .main-content { padding: 16px; }
   .two { grid-template-columns: 1fr; }
   .header { padding: 0 10px; gap: 8px; }
-  /* шапка на телефоне: без подписи вкладки, кнопки только иконками, статус в одну строку */
   .header__caption { display: none; }
   .header__left { gap: 8px; flex-shrink: 0; }
   .header__right { gap: 6px; min-width: 0; flex: 1 1 auto; justify-content: flex-end; }
   .header__status-badge { max-width: none; }
-  #txtProbe, #txtSync { display: none; }
-  #bProbe, #bSync { padding: 0 9px; flex-shrink: 0; }
+  #txtProbe { display: none; }
+  #bProbe { padding: 0 9px; flex-shrink: 0; }
+  #bSync { padding: 0 9px; flex-shrink: 0; }
   .theme-toggle-btn { flex-shrink: 0; }
   .grid { grid-template-columns: 1fr; }
 }
@@ -509,11 +514,11 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
         <span class="header__logo">kproxyd</span>
       </div>
 
-      <div class="header__caption" id="headerCaption">Groups</div>
+      <div class="header__caption" id="headerCaption">Nodes</div>
     </div>
 
     <div class="header__right">
-      <!-- Live Status Pill -->
+      <!-- Live Status Pill (Minimalist 1/1) -->
       <div class="header__status-badge" id="headerBadge">
         <span class="indicator-dot"></span>
         <span id="sum">loading…</span>
@@ -528,12 +533,11 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
       <!-- Action Buttons -->
       <button class="ndw-btn ndw-btn--outline ndw-btn--small" id="bProbe">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-        <span id="txtProbe">Probe Outlets</span>
+        <span id="txtProbe">Diagnostics</span>
       </button>
 
-      <button class="ndw-btn ndw-btn--outline ndw-btn--small" id="bSync">
+      <button class="ndw-btn ndw-btn--outline ndw-btn--small" id="bSync" title="Refresh Keenetic status">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-        <span id="txtSync">Refresh Keenetic</span>
       </button>
     </div>
   </header>
@@ -543,20 +547,20 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
     <!-- Sidebar Menu (KeeneticOS Navigation) -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar__content">
-        <div class="sidebar__section-title" id="txtNavRouting">PROXY ROUTING</div>
+        <div class="sidebar__section-title" id="txtNavRouting">ROUTING</div>
 
         <button class="menu-item active" data-tab="groups">
           <span class="menu-item__icon">
             <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4V4zm10 0h6v7h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z"/></svg>
           </span>
-          <span class="menu-item__text" id="txtTabGroups">Groups</span>
+          <span class="menu-item__text" id="txtTabGroups">Nodes</span>
         </button>
 
         <button class="menu-item" data-tab="outlets">
           <span class="menu-item__icon">
             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
           </span>
-          <span class="menu-item__text" id="txtTabOutlets">Outlets</span>
+          <span class="menu-item__text" id="txtTabOutlets">Connections</span>
         </button>
 
         <div class="sidebar__section-title" style="margin-top:16px" id="txtNavSystem">SYSTEM</div>
@@ -594,80 +598,82 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
 "use strict";
 
 /* ==========================================================================
-   Multilingual Localization Engine (en: English, ru: Русский, zh: 简体中文)
+   Multilingual Localization Engine (en: English, ru: Русский)
    ========================================================================== */
 const i18n = {
   en: {
-    navGroups: "Groups",
-    navOutlets: "Outlets",
+    navGroups: "Nodes",
+    navOutlets: "Connections",
     navLog: "Event Log",
     navSettings: "Settings",
-    navRouting: "PROXY ROUTING",
+    navRouting: "ROUTING",
     navSystem: "SYSTEM",
-    probeBtn: "Probe Outlets",
-    syncBtn: "Refresh Keenetic",
-    probingToast: "Probe triggered",
+    probeBtn: "Diagnostics",
+    syncBtnTitle: "Refresh Keenetic status",
+    probingToast: "Diagnostics probe triggered",
     refreshingToast: "Refreshing Keenetic configuration",
     loading: "loading…",
-    noConnection: "no connection to kproxyd: ",
-    sumStatus: (up, on) => `${up} of ${on} outlets ready`,
+    noConnection: "No connection to kproxyd: ",
+    sumStatus: (up, on) => `${up}/${on}`,
     keeneticErr: "Keenetic error: ",
+    closeBtn: "Close",
     
-    // Groups
-    noGroupsYet: "No groups configured yet. A group is a kproxyd SOCKS5 server: Keenetic routes selected domain lists into it, and kproxyd forwards traffic to the best tunnel in the group.",
-    createGroupBtn: "Create Group",
-    addOutletsFirstHint: "First add outlets in the «Outlets» tab.",
-    currentActive: "Active:",
-    noActiveOutlets: "no available outlets",
+    // Nodes (formerly Groups)
+    noGroupsYet: "No routing nodes configured. A node is a local SOCKS5 proxy service: Keenetic directs domain list traffic to it, and kproxyd forwards connections to the optimal active uplink.",
+    createGroupBtn: "Create Node",
+    addOutletsFirstHint: "Add connections in the «Connections» tab first.",
+    currentActive: "Active uplink:",
+    noActiveOutlets: "no active connections",
     editBtn: "Edit",
     pinBtn: "Pin",
     pinnedBtn: "Pinned",
-    unpinHint: "Unpin outlet",
-    restoreAutoBtn: "Restore auto-selection",
-    autoRestored: "Auto-selection enabled",
-    pinnedToast: o => `Pinned ${o}`,
+    unpinHint: "Unpin connection",
+    restoreAutoBtn: "Restore automatic failover",
+    autoRestored: "Automatic selection enabled",
+    pinnedToast: o => `Pinned uplink: ${o}`,
     manualPolicy: "manual",
-    fastestPolicy: "fastest",
+    fastestPolicy: "lowest latency (RTT)",
     priorityPolicy: "priority order",
-    socksInfo: (l, pol, c, m) => `SOCKS5 ${l} · policy: ${pol} · connections: ${c} of ${m}`,
-    noLists: "no domain lists directed to this group in Keenetic",
-    socksNotRunning: "SOCKS listener failed: ",
-    newGroupBtn: "+ New Group",
-    setupTitle: "How to connect this group in Keenetic",
-    setupStep1: "Install Keenetic component <b>«Proxy client»</b>.",
-    setupStep2: (h, p, u) => `Create proxy connection: protocol <b>SOCKS5</b>, address <b>${h}</b>, port <b>${p}</b>${u ? ", username & password as configured in group" : ""}.`,
-    setupStep3: "In Domain Name Routing, route domain lists to this connection with <b>reject</b> flag.",
+    socksInfo: (l, pol, c, m) => `SOCKS5: ${l} · Policy: ${pol} · Sessions: ${c}/${m}`,
+    noLists: "no Keenetic domain lists directed to this node",
+    socksNotRunning: "SOCKS5 listener failed: ",
+    newGroupBtn: "+ New Node",
+    setupTitle: "Keenetic routing configuration guide",
+    setupStep1: "Install the Keenetic system component <b>«Proxy client»</b>.",
+    setupStep2: (h, p, u) => `Create a proxy connection: protocol <b>SOCKS5</b>, host <b>${h}</b>, port <b>${p}</b>${u ? ", with configured node credentials" : ""}.`,
+    setupStep3: "In Domain Name Routing, bind domain lists to this proxy connection with the <b>reject</b> flag.",
     setupCommandsIntro: "Or execute via SSH / Keenetic CLI:",
-    setupHint: "kproxyd does not alter Keenetic configuration. After setup, click «Refresh Keenetic».",
+    setupHint: "kproxyd operates in read-only mode and does not alter Keenetic configuration. After setup, click the refresh button.",
     copyBtn: "Copy",
     copiedToast: "Copied to clipboard",
 
-    // Outlets
-    noOutletsYet: "No outlets configured yet. An outlet is a Keenetic tunnel (e.g. Wireguard0) through which kproxyd routes traffic.",
-    available: "available",
-    unavailable: "unavailable",
-    disabledNotProbed: "disabled, not probed",
+    // Connections (formerly Outlets)
+    noOutletsYet: "No connections configured. A connection is a network interface or tunnel (e.g. Wireguard0) used by kproxyd for egress traffic.",
+    available: "online",
+    unavailable: "offline",
+    disabledNotProbed: "disabled, diagnostics stopped",
     disabled: "disabled",
-    stableFor: "stable ",
-    sparkAria: "Latency history (recent probes)",
+    stableFor: "uptime ",
+    sparkAria: "Round-trip time (RTT) history",
     lblInterface: "Interface",
-    lblKeenetic: "Keenetic",
+    lblKeenetic: "Keenetic status",
     connected: "connected",
-    notConnected: "not connected",
+    notConnected: "disconnected",
     lblHandshake: "Handshake",
-    lblConnections: "Connections",
-    lblInGroups: "In groups",
+    lblConnections: "Active sessions",
+    lblInGroups: "In nodes",
     none: "none",
-    lblLastCheck: "Last check",
+    lblLastCheck: "Last RTT check",
     agoSuffix: "ago",
-    unconfiguredTunnelsTitle: "Unconfigured Keenetic Tunnels",
+    unconfiguredTunnelsTitle: "Connections",
     addBtn: "+ Add",
-    outletAdded: n => `Outlet ${n} added`,
-    outletEnabled: n => `${n} enabled`,
-    outletDisabled: n => `${n} disabled`,
-    outletDeleted: "Outlet deleted",
-    groupSaved: "Group saved",
-    groupDeleted: "Group deleted",
+    outletAdded: n => `Connection ${n} added`,
+    outletEnabled: n => `Connection ${n} enabled`,
+    outletDisabled: n => `Connection ${n} disabled`,
+    outletDeleted: "Connection deleted",
+    delOutletConfirm: n => `Delete connection ${n}?`,
+    groupSaved: "Node configuration saved",
+    groupDeleted: "Node deleted",
     savedToast: "Saved",
     saveFailedToast: "Failed to save: ",
 
@@ -678,21 +684,21 @@ const i18n = {
     sectionLang: "Interface Language",
     lblLang: "Select Language",
     langHint: "Changes interface language across all sections and saves preference in browser.",
-    sectionProbe: "Outlet Health Probing",
-    lblProbeUrl: "Probe URL",
-    lblProbeDns: "Probe DNS Server",
-    probeDnsHint: "This DNS server (also queried through the tunnel) is used to probe outlets and resolve domain names in SOCKS5 requests. <code>system</code> uses the router's DNS.",
-    lblInterval: "Interval, s",
-    lblTimeout: "Timeout, ms",
-    lblFail: "Fail threshold (count)",
-    lblRecover: "Recover threshold (count)",
-    lblReturn: "Return delay after recovery, s",
-    returnHint: "Return delay prevents rapid flapping when the primary tunnel fluctuates.",
+    sectionProbe: "Connection Diagnostics & Health Probing",
+    lblProbeUrl: "Health Check Target URL",
+    lblProbeDns: "Probe DNS Resolver",
+    probeDnsHint: "Queried through each tunnel to evaluate latency and resolve SOCKS5 targets. Value <code>system</code> uses the router's DNS resolver.",
+    lblInterval: "Probe Interval, sec",
+    lblTimeout: "Probe Timeout, ms",
+    lblFail: "Failure Threshold (probes)",
+    lblRecover: "Recovery Threshold (probes)",
+    lblReturn: "Failback Hold-down Timer, sec",
+    returnHint: "Prevents flapping when the primary uplink is fluctuating.",
     sectionWeb: "Web Interface Access",
     lblUser: "Username",
     lblPass: "New Password",
-    passPlaceholder: "leave blank to keep current",
-    lblListen: "Web listen address",
+    passPlaceholder: "leave blank to keep current password",
+    lblListen: "Web Listen Address",
     webListenHint: "New listen address will take effect after restarting kproxyd.",
     webPassSavedNotice: "Saved. Browser will require re-login with the new password.",
     sectionRaw: "Full Configuration (JSON)",
@@ -700,116 +706,118 @@ const i18n = {
     rawResetBtn: "Discard Changes",
     rawSaveBtn: "Save JSON",
     jsonError: "JSON syntax error: ",
-    metaFooter: (v, u, dev) => `kproxyd ${v} · uptime ${u} · default route via ${dev}`,
+    metaFooter: (v, u, dev) => `kproxyd ${v} · uptime ${u} · default gateway ${dev}`,
 
     // Modals
-    newGroupTitle: "New Group",
-    editGroupTitle: n => `Group ${n}`,
-    lblName: "Name",
+    newGroupTitle: "New Node",
+    editGroupTitle: n => `Node: ${n}`,
+    lblName: "Identifier / Name",
     nameTitle: "Latin letters, digits, _ . -",
-    lblPolicy: "Selection Policy",
-    optFallback: "first alive in order",
-    optFastest: "lowest latency",
-    lblTol: "Switch only if alternative is faster by, ms",
-    lblMembers: "Outlets (order = priority)",
+    lblPolicy: "Routing Selection Policy",
+    optFallback: "Priority list (first active in order)",
+    optFastest: "Lowest latency (RTT)",
+    lblTol: "Switching Sensitivity Threshold, ms",
+    lblMembers: "Member Connections (order defines priority)",
     lblMoveUp: "Up",
     lblMoveDown: "Down",
-    lblSocksListen: "SOCKS5 listen address",
-    socksListenHint: "In Keenetic, create a SOCKS5 proxy connection to this address and route domain lists into it. kproxyd never modifies Keenetic config.",
+    lblSocksListen: "SOCKS5 Bind Address",
+    socksListenHint: "In Keenetic, configure a SOCKS5 proxy connection to this address. kproxyd never alters Keenetic configuration.",
     lblSocksUser: "SOCKS5 Username (optional)",
     lblSocksPass: "SOCKS5 Password",
-    socksAuthHint: "If not listening on 127.0.0.1, set a username and password to prevent open access across the network.",
-    lblAllDown: "If all outlets in group are down",
-    optReject: "block (reject - no traffic leaks to ISP)",
-    optIsp: "pass through ISP",
-    lblMaxConns: "Max concurrent connections",
-    maxConnsHint: "Beyond this limit, new connections are rejected to safeguard router memory. Each connection uses up to ~100 KB.",
-    lblKill: "Terminate open connections on any switch",
-    killHint: "Connections through a dropped outlet are always closed immediately so clients reconnect through the new one.",
-    delGroupBtn: "Delete Group",
+    socksAuthHint: "If binding to a non-loopback address, set credentials to prevent unauthorized LAN access.",
+    lblAllDown: "Action when all member connections are down",
+    optReject: "Block traffic (reject — prevent leaks to ISP)",
+    optIsp: "Direct pass-through via ISP",
+    lblMaxConns: "Max Concurrent Sessions",
+    maxConnsHint: "Sessions exceeding this limit are rejected to safeguard router memory (~100 KB per session).",
+    lblKill: "Reset open sessions on uplink switch",
+    killHint: "Active sessions through a dropped uplink are immediately terminated so clients reconnect over the new route.",
+    delGroupBtn: "Delete Node",
     cancelBtn: "Cancel",
     saveBtn: "Save",
-    delGroupConfirm: n => `Delete group ${n}? Keenetic proxy connection and domain routing are not modified by kproxyd — remove them manually in Keenetic if needed.`,
+    delGroupConfirm: n => `Delete node ${n}? Keenetic proxy connection and domain routing are not modified by kproxyd — remove them manually in Keenetic if needed.`,
 
-    editOutletTitle: n => `Outlet ${n}`,
-    lblDev: "System device name (interface)",
+    editOutletTitle: n => `Connection: ${n}`,
+    lblDev: "System Device Name (interface)",
     devPlaceholder: "auto-detected",
-    devHint: "Fill only if auto-detection failed. Device list: <code>ls /sys/class/net</code>.",
+    devHint: "Specify only if auto-detection was incorrect. Device list: <code>ls /sys/class/net</code>.",
     delOutletBtn: "Delete",
-    delDisabledTitle: "Remove outlet from groups first"
+    delDisabledTitle: "Remove connection from all nodes first"
   },
 
   ru: {
-    navGroups: "Группы",
-    navOutlets: "Выходы",
-    navLog: "Журнал",
+    navGroups: "Узлы",
+    navOutlets: "Подключения",
+    navLog: "Журнал событий",
     navSettings: "Настройки",
     navRouting: "МАРШРУТИЗАЦИЯ",
     navSystem: "СИСТЕМА",
-    probeBtn: "Проверить выходы",
-    syncBtn: "Перечитать Keenetic",
-    probingToast: "Проверка запущена",
+    probeBtn: "Диагностика",
+    syncBtnTitle: "Обновить данные Keenetic",
+    probingToast: "Диагностика запущена",
     refreshingToast: "Конфигурация Keenetic перечитывается",
     loading: "загрузка…",
-    noConnection: "нет связи с kproxyd: ",
-    sumStatus: (up, on) => `выходов доступно ${up} из ${on}`,
+    noConnection: "Нет связи с kproxyd: ",
+    sumStatus: (up, on) => `${up}/${on}`,
     keeneticErr: "ошибка Keenetic: ",
+    closeBtn: "Закрыть",
     
-    // Groups
-    noGroupsYet: "Групп пока нет. Группа — это SOCKS5-сервер kproxyd: Keenetic отправляет в него выбранные списки доменов, а kproxyd — в лучший из туннелей группы.",
-    createGroupBtn: "Создать группу",
-    addOutletsFirstHint: "Сначала добавьте выходы на вкладке «Выходы».",
-    currentActive: "Сейчас:",
-    noActiveOutlets: "нет доступных выходов",
+    // Nodes (formerly Groups)
+    noGroupsYet: "Узлы маршрутизации не настроены. Узел — это локальный SOCKS5-прокси kproxyd: Keenetic направляет в него списки доменов, а kproxyd перенаправляет трафик в оптимальное активное подключение.",
+    createGroupBtn: "Создать узел",
+    addOutletsFirstHint: "Сначала добавьте подключения на вкладке «Подключения».",
+    currentActive: "Активное подключение:",
+    noActiveOutlets: "нет доступных подключений",
     editBtn: "Изменить",
     pinBtn: "Закрепить",
-    pinnedBtn: "Закреплён",
-    unpinHint: "Снять закрепление",
-    restoreAutoBtn: "Вернуть автовыбор",
+    pinnedBtn: "Закреплено",
+    unpinHint: "Снять закрепление подключения",
+    restoreAutoBtn: "Включить автовыбор",
     autoRestored: "Автовыбор включён",
-    pinnedToast: o => `Закреплён ${o}`,
-    manualPolicy: "вручную",
-    fastestPolicy: "самый быстрый",
-    priorityPolicy: "по приоритету",
-    socksInfo: (l, pol, c, m) => `SOCKS5 ${l} · выбор: ${pol} · соединений: ${c} из ${m}`,
-    noLists: "в Keenetic в эту группу не направлен ни один список",
-    socksNotRunning: "SOCKS не запущен: ",
-    newGroupBtn: "+ Новая группа",
-    setupTitle: "Как подключить группу в Keenetic",
-    setupStep1: "Установите компонент Keenetic «Клиент прокси».",
-    setupStep2: (h, p, u) => `Создайте прокси-подключение: протокол <b>SOCKS5</b>, адрес <b>${h}</b>, порт <b>${p}</b>${u ? ", логин и пароль как в группе" : ""}.`,
-    setupStep3: "В маршрутизации по доменам направьте нужные списки в это подключение. Флаг «reject» не даст трафику уйти через провайдера, если kproxyd остановлен.",
-    setupCommandsIntro: "То же командами (выполните по SSH или в CLI Keenetic):",
-    setupHint: "kproxyd ничего не меняет в Keenetic — после настройки нажмите «Перечитать Keenetic».",
+    pinnedToast: o => `Закреплено подключение: ${o}`,
+    manualPolicy: "ручной выбор",
+    fastestPolicy: "минимальная задержка (RTT)",
+    priorityPolicy: "приоритет по списку",
+    socksInfo: (l, pol, c, m) => `SOCKS5: ${l} · Политика: ${pol} · Сессии: ${c}/${m}`,
+    noLists: "в Keenetic к этому узлу не привязан ни один список доменов",
+    socksNotRunning: "Ошибка слушателя SOCKS5: ",
+    newGroupBtn: "+ Новый узел",
+    setupTitle: "Инструкция по настройке маршрутизации в Keenetic",
+    setupStep1: "Установите компонент Keenetic <b>«Клиент прокси»</b>.",
+    setupStep2: (h, p, u) => `Создайте прокси-подключение: протокол <b>SOCKS5</b>, адрес <b>${h}</b>, порт <b>${p}</b>${u ? ", с указанными логином и паролем узла" : ""}.`,
+    setupStep3: "В маршрутизации по доменам направьте нужные списки в это подключение с флагом <b>reject</b> (блокировка при отсутствии связи).",
+    setupCommandsIntro: "Настройка командами (через SSH или CLI Keenetic):",
+    setupHint: "kproxyd работает только на чтение и не меняет конфигурацию Keenetic. После настройки нажмите кнопку обновления.",
     copyBtn: "Копировать",
     copiedToast: "Скопировано в буфер",
 
-    // Outlets
-    noOutletsYet: "Выходов пока нет. Выход — это туннель Keenetic (например, Wireguard0), через который kproxyd может отправлять трафик.",
-    available: "доступен",
-    unavailable: "недоступен",
-    disabledNotProbed: "выключен, не проверяется",
-    disabled: "выключен",
-    stableFor: "стабилен ",
-    sparkAria: "Задержка за последние проверки",
+    // Connections (formerly Outlets)
+    noOutletsYet: "Подключения не настроены. Подключение — это сетевой интерфейс роутера (например, Wireguard0), через который kproxyd отправляет исходящий трафик.",
+    available: "доступно",
+    unavailable: "недоступно",
+    disabledNotProbed: "отключено, диагностика выключена",
+    disabled: "отключено",
+    stableFor: "аптайм ",
+    sparkAria: "График задержки (RTT)",
     lblInterface: "Интерфейс",
-    lblKeenetic: "Keenetic",
-    connected: "подключён",
-    notConnected: "не подключён",
-    lblHandshake: "Рукопожатие",
-    lblConnections: "Соединений",
-    lblInGroups: "В группах",
-    none: "ни в одной",
-    lblLastCheck: "Проверка",
+    lblKeenetic: "Статус Keenetic",
+    connected: "подключено",
+    notConnected: "не подключено",
+    lblHandshake: "Последний handshake",
+    lblConnections: "Активных сессий",
+    lblInGroups: "В узлах",
+    none: "не используется",
+    lblLastCheck: "Диагностика RTT",
     agoSuffix: "назад",
-    unconfiguredTunnelsTitle: "Туннели Keenetic, ещё не добавленные",
+    unconfiguredTunnelsTitle: "Подключения",
     addBtn: "+ Добавить",
-    outletAdded: n => `Выход ${n} добавлен`,
-    outletEnabled: n => `${n} включён`,
-    outletDisabled: n => `${n} выключен`,
-    outletDeleted: "Выход удалён",
-    groupSaved: "Группа сохранена",
-    groupDeleted: "Группа удалена",
+    outletAdded: n => `Подключение ${n} добавлено`,
+    outletEnabled: n => `Подключение ${n} включено`,
+    outletDisabled: n => `Подключение ${n} выключено`,
+    outletDeleted: "Подключение удалено",
+    delOutletConfirm: n => `Удалить подключение ${n}?`,
+    groupSaved: "Узел сохранён",
+    groupDeleted: "Узел удалён",
     savedToast: "Сохранено",
     saveFailedToast: "Не сохранено: ",
 
@@ -819,208 +827,66 @@ const i18n = {
     // Settings
     sectionLang: "Язык интерфейса",
     lblLang: "Выберите язык",
-    langHint: "Меняет язык интерфейса во всех разделах и сохраняет выбор в браузере.",
-    sectionProbe: "Проверка выходов",
-    lblProbeUrl: "Адрес для проверки",
-    lblProbeDns: "DNS для проверки",
-    probeDnsHint: "Через этот DNS, тоже по туннелю, проверяются выходы и резолвятся имена в SOCKS5-запросах. <code>system</code> — использовать DNS роутера.",
-    lblInterval: "Интервал, с",
-    lblTimeout: "Таймаут, мс",
-    lblFail: "Неудач подряд до «упал»",
-    lblRecover: "Успехов подряд до «жив»",
-    lblReturn: "Возврат на приоритетный выход после восстановления, с",
-    returnHint: "Задержка возврата защищает от «дребезга», когда основной узел то появляется, то пропадает.",
+    langHint: "Переключает язык интерфейса и сохраняет выбор в браузере.",
+    sectionProbe: "Параметры диагностики подключений",
+    lblProbeUrl: "Адрес для проверки доступности",
+    lblProbeDns: "DNS-сервер диагностики",
+    probeDnsHint: "Опрашивается через каждое подключение для измерения задержки и резолвинга в SOCKS5. Значение <code>system</code> использует DNS роутера.",
+    lblInterval: "Интервал зондирования, с",
+    lblTimeout: "Таймаут зондирования, мс",
+    lblFail: "Порог фиксации отказа (число сбоев)",
+    lblRecover: "Порог восстановления (число успехов)",
+    lblReturn: "Задержка возврата на приоритетный линк, с",
+    returnHint: "Предотвращает частые переключения (flapping) при нестабильной связи на основном канале.",
     sectionWeb: "Доступ к веб-интерфейсу",
     lblUser: "Логин",
     lblPass: "Новый пароль",
-    passPlaceholder: "оставьте пустым, чтобы не менять",
+    passPlaceholder: "оставьте пустым, чтобы сохранить текущий",
     lblListen: "Адрес веб-интерфейса",
-    webListenHint: "Новый адрес начнёт работать после перезапуска kproxyd.",
-    webPassSavedNotice: "Сохранено. Браузер попросит войти с новым паролем",
+    webListenHint: "Новый адрес вступит в силу после перезапуска службы kproxyd.",
+    webPassSavedNotice: "Сохранено. Потребуется повторный вход с новым паролем",
     sectionRaw: "Конфигурация целиком (JSON)",
     rawHint: "Для тонкой настройки. Пароль веб-интерфейса здесь не показывается; пустое значение сохраняет текущий.",
     rawResetBtn: "Отменить правки",
     rawSaveBtn: "Сохранить JSON",
     jsonError: "Ошибка в JSON: ",
-    metaFooter: (v, u, dev) => `kproxyd ${v} · работает ${u} · маршрут по умолчанию через ${dev}`,
+    metaFooter: (v, u, dev) => `kproxyd ${v} · аптайм ${u} · шлюз по умолчанию ${dev}`,
 
     // Modals
-    newGroupTitle: "Новая группа",
-    editGroupTitle: n => `Группа ${n}`,
-    lblName: "Название",
+    newGroupTitle: "Новый узел",
+    editGroupTitle: n => `Узел: ${n}`,
+    lblName: "Идентификатор / Имя",
     nameTitle: "латиница, цифры, _ . -",
-    lblPolicy: "Какой выход выбирать",
-    optFallback: "первый живой по порядку",
-    optFastest: "с минимальной задержкой",
-    lblTol: "Переключаться, если новый быстрее хотя бы на, мс",
-    lblMembers: "Выходы (порядок = приоритет)",
+    lblPolicy: "Алгоритм выбора подключения",
+    optFallback: "Приоритетный список (первый доступный по порядку)",
+    optFastest: "Минимальная задержка (RTT)",
+    lblTol: "Порог чувствительности переключения, мс",
+    lblMembers: "Подключения узла (порядок определяет приоритет)",
     lblMoveUp: "Выше",
     lblMoveDown: "Ниже",
-    lblSocksListen: "SOCKS5 слушает",
-    socksListenHint: "На этот адрес в Keenetic создаётся прокси-подключение (SOCKS5), и в него направляются списки доменов. kproxyd в Keenetic ничего не меняет.",
-    lblSocksUser: "Логин SOCKS5 (необязательно)",
+    lblSocksListen: "Адрес прослушивания SOCKS5",
+    socksListenHint: "На этот адрес в Keenetic создается клиентское прокси-подключение SOCKS5. kproxyd не изменяет настройки роутера.",
+    lblSocksUser: "Пользователь SOCKS5 (auth)",
     lblSocksPass: "Пароль SOCKS5",
-    socksAuthHint: "Если слушаете не на 127.0.0.1, задайте логин и пароль: иначе прокси будет открыт для всей сети.",
-    lblAllDown: "Если все выходы группы недоступны",
-    optReject: "блокировать (ничего не утекает к провайдеру)",
-    optIsp: "пускать через провайдера",
-    lblMaxConns: "Не больше соединений одновременно",
-    maxConnsHint: "Сверх предела новые соединения отклоняются — чтобы kproxyd не занял всю память роутера. Соединение занимает до ~100 КБ.",
-    lblKill: "Рвать открытые соединения при любом переключении",
-    killHint: "Соединения через упавший выход закрываются всегда — клиенты сразу переподключаются через новый.",
-    delGroupBtn: "Удалить группу",
+    socksAuthHint: "Если слушаете не на 127.0.0.1, обязательно задайте логин и пароль для защиты от несанкционированного доступа из LAN.",
+    lblAllDown: "Действие при недоступности всех подключений",
+    optReject: "Блокировать (reject — предотвратить утечку к провайдеру)",
+    optIsp: "Пропускать напрямую через провайдера (direct ISP)",
+    lblMaxConns: "Лимит одновременных сессий",
+    maxConnsHint: "Новые сессии сверх предела отклоняются для защиты памяти роутера (~100 КБ на сессию).",
+    lblKill: "Сброс открытых сессий при переключении линка",
+    killHint: "При переключении сессии через упавший линк принудительно разрываются для мгновенного реконнекта клиентов через резерв.",
+    delGroupBtn: "Удалить узел",
     cancelBtn: "Отмена",
     saveBtn: "Сохранить",
-    delGroupConfirm: n => `Удалить группу ${n}? Прокси-подключение и маршруты списков в Keenetic kproxyd не трогает — уберите их сами.`,
+    delGroupConfirm: n => `Удалить узел ${n}? Прокси-подключение и маршруты в Keenetic kproxyd не изменяет — при необходимости удалите их вручную.`,
 
-    editOutletTitle: n => `Выход ${n}`,
-    lblDev: "Системное имя устройства",
+    editOutletTitle: n => `Подключение: ${n}`,
+    lblDev: "Сетевой интерфейс в ОС",
     devPlaceholder: "определяется автоматически",
-    devHint: "Заполняйте, только если автоопределение ошиблось. Список устройств: <code>ls /sys/class/net</code>.",
+    devHint: "Указывайте, только если автоопределение ошиблось. Список устройств: <code>ls /sys/class/net</code>.",
     delOutletBtn: "Удалить",
-    delDisabledTitle: "Сначала уберите выход из групп"
-  },
-
-  zh: {
-    navGroups: "代理分组",
-    navOutlets: "出口线路",
-    navLog: "事件日志",
-    navSettings: "系统设置",
-    navRouting: "代理路由",
-    navSystem: "系统管理",
-    probeBtn: "检测出口",
-    syncBtn: "刷新 Keenetic",
-    probingToast: "探测已触发",
-    refreshingToast: "正在重新读取 Keenetic 配置",
-    loading: "加载中…",
-    noConnection: "无法连接到 kproxyd: ",
-    sumStatus: (up, on) => `${on} 个出口中有 ${up} 个就绪`,
-    keeneticErr: "Keenetic 错误: ",
-    
-    // Groups
-    noGroupsYet: "尚未配置分组。分组是 kproxyd 的 SOCKS5 代理服务：Keenetic 将选定的域名列表流量定向到此，kproxyd 则自动转发至该分组中最优的活动隧道。",
-    createGroupBtn: "创建分组",
-    addOutletsFirstHint: "请先在「出口」标签页中添加出口隧道。",
-    currentActive: "当前活动:",
-    noActiveOutlets: "无可用出口",
-    editBtn: "编辑",
-    pinBtn: "固定线路",
-    pinnedBtn: "已固定",
-    unpinHint: "取消固定",
-    restoreAutoBtn: "恢复自动选择",
-    autoRestored: "已恢复自动选择",
-    pinnedToast: o => `已固定出口 ${o}`,
-    manualPolicy: "手动指定",
-    fastestPolicy: "最低延迟",
-    priorityPolicy: "按优先级",
-    socksInfo: (l, pol, c, m) => `SOCKS5 ${l} · 策略: ${pol} · 活动连接: ${c} / ${m}`,
-    noLists: "Keenetic 中尚未将任何域名列表定向至该分组",
-    socksNotRunning: "SOCKS 监听未运行: ",
-    newGroupBtn: "+ 新建分组",
-    setupTitle: "Keenetic 路由接入指南",
-    setupStep1: "在 Keenetic 中安装组件 <b>«代理客户端» (Proxy client)</b>。",
-    setupStep2: (h, p, u) => `创建代理连接：协议 <b>SOCKS5</b>，地址 <b>${h}</b>，端口 <b>${p}</b>${u ? "，填写分组中设置的用户名和密码" : ""}。`,
-    setupStep3: "在域名路由中将所需的域名列表定向至此连接，并勾选 <b>reject</b> (不可用时拒绝) 标记。",
-    setupCommandsIntro: "或通过 SSH / Keenetic 命令行直接执行：",
-    setupHint: "kproxyd 不会自动修改 Keenetic 配置——完成设置后请点击「刷新 Keenetic」。",
-    copyBtn: "复制",
-    copiedToast: "已复制到剪贴板",
-
-    // Outlets
-    noOutletsYet: "尚未配置出口。出口是 Keenetic 中的隧道接口（例如 Wireguard0），kproxyd 可通过其路由流量。",
-    available: "可用",
-    unavailable: "不可用",
-    disabledNotProbed: "已禁用，不进行探测",
-    disabled: "已禁用",
-    stableFor: "稳定运行 ",
-    sparkAria: "最近检测延迟曲线",
-    lblInterface: "接口",
-    lblKeenetic: "Keenetic 状态",
-    connected: "已连接",
-    notConnected: "未连接",
-    lblHandshake: "最新握手",
-    lblConnections: "活动连接数",
-    lblInGroups: "所属分组",
-    none: "无",
-    lblLastCheck: "上次检查",
-    agoSuffix: "前",
-    unconfiguredTunnelsTitle: "未添加的 Keenetic 隧道",
-    addBtn: "+ 添加",
-    outletAdded: n => `已添加出口 ${n}`,
-    outletEnabled: n => `${n} 已启用`,
-    outletDisabled: n => `${n} 已禁用`,
-    outletDeleted: "出口已删除",
-    groupSaved: "分组已保存",
-    groupDeleted: "分组已删除",
-    savedToast: "已保存",
-    saveFailedToast: "保存失败: ",
-
-    // Event Log
-    noEventsYet: "暂无记录的事件。",
-
-    // Settings
-    sectionLang: "界面语言",
-    lblLang: "选择语言",
-    langHint: "实时更改所有界面的显示语言，并将首选项保存在浏览器中。",
-    sectionProbe: "出口健康检查",
-    lblProbeUrl: "探测目标 URL",
-    lblProbeDns: "探测 DNS 服务器",
-    probeDnsHint: "此 DNS 服务器（同样通过隧道查询）用于探测出口及解析 SOCKS5 请求中的域名。填写 <code>system</code> 则使用路由器默认 DNS。",
-    lblInterval: "检测间隔 (秒)",
-    lblTimeout: "超时时间 (毫秒)",
-    lblFail: "判定离线失败阈值",
-    lblRecover: "判定恢复成功阈值",
-    lblReturn: "恢复首选出口的延迟 (秒)",
-    returnHint: "延迟切换可防止主隧道网络波动时的频繁震荡。",
-    sectionWeb: "Web 界面访问",
-    lblUser: "用户名",
-    lblPass: "新密码",
-    passPlaceholder: "留空则保持当前密码不变",
-    lblListen: "Web 服务监听地址",
-    webListenHint: "修改监听地址后将在重启 kproxyd 守护进程后生效。",
-    webPassSavedNotice: "已保存。浏览器将提示使用新密码重新登录。",
-    sectionRaw: "完整配置 (JSON)",
-    rawHint: "供高级调优使用。此处不显示 Web 密码；留空将保持现有密码。",
-    rawResetBtn: "放弃修改",
-    rawSaveBtn: "保存 JSON",
-    jsonError: "JSON 语法错误: ",
-    metaFooter: (v, u, dev) => `kproxyd ${v} · 已运行 ${u} · 默认路由走 ${dev}`,
-
-    // Modals
-    newGroupTitle: "新建分组",
-    editGroupTitle: n => `分组 ${n}`,
-    lblName: "分组名称",
-    nameTitle: "英文字母、数字、_ . -",
-    lblPolicy: "出口选择策略",
-    optFallback: "按列表顺序优先选择首个可用线路",
-    optFastest: "自动选择延迟最低的线路",
-    lblTol: "仅当新线路延迟至少快 (毫秒) 时才切换",
-    lblMembers: "出口列表 (排序 = 优先级)",
-    lblMoveUp: "上移",
-    lblMoveDown: "下移",
-    lblSocksListen: "SOCKS5 监听地址",
-    socksListenHint: "在 Keenetic 中为此地址创建 SOCKS5 代理连接并定向域名列表。kproxyd 绝不会修改 Keenetic 的配置。",
-    lblSocksUser: "SOCKS5 用户名 (可选)",
-    lblSocksPass: "SOCKS5 密码",
-    socksAuthHint: "如果监听地址不是 127.0.0.1，请务必设置用户名和密码，防止局域网未经授权公开访问。",
-    lblAllDown: "若分组内所有出口均不可用",
-    optReject: "拒绝连接 (reject - 绝不向运营商泄露流量)",
-    optIsp: "回退直连 (通过运营商出口放行)",
-    lblMaxConns: "最大并发连接数",
-    maxConnsHint: "超过此上限的新连接将被拒绝，以防耗尽路由器内存。每个并发连接最多占用约 100 KB 内存。",
-    lblKill: "线路发生任何切换时强制关闭已建立的连接",
-    killHint: "当当前出口离线时，现有连接始终会被立即关闭，以便客户端通过新线路重连。",
-    delGroupBtn: "删除分组",
-    cancelBtn: "取消",
-    saveBtn: "保存",
-    delGroupConfirm: n => `确定要删除分组 ${n} 吗？kproxyd 不会修改 Keenetic 中的代理连接与域名路由配置——请根据需要手动在 Keenetic 中清理。`,
-
-    editOutletTitle: n => `出口 ${n}`,
-    lblDev: "系统网卡设备名称",
-    devPlaceholder: "自动检测",
-    devHint: "仅在自动检测不正确时填写。可用网卡列表可查: <code>ls /sys/class/net</code>。",
-    delOutletBtn: "删除",
-    delDisabledTitle: "请先将此出口从所有分组中移除"
+    delDisabledTitle: "Сначала исключите подключение из всех узлов"
   }
 };
 
@@ -1030,7 +896,6 @@ const i18n = {
 let S = null;                  // latest state from backend
 let tab = "groups";
 let settingsDirty = false;
-// хранилище браузера может быть недоступно (приватный режим, запрет сайтам) — тогда просто не запоминаем
 const store = {
   get(k){ try { return localStorage.getItem(k); } catch(e) { return null; } },
   set(k, v){ try { localStorage.setItem(k, v); } catch(e) {} }
@@ -1081,9 +946,8 @@ function updateStaticLabels() {
   $("#txtTabLog").textContent = t("navLog");
   $("#txtTabSettings").textContent = t("navSettings");
   $("#txtProbe").textContent = t("probeBtn");
-  $("#txtSync").textContent = t("syncBtn");
   $("#bProbe").title = t("probeBtn");
-  $("#bSync").title = t("syncBtn");
+  $("#bSync").title = t("syncBtnTitle");
 
   const captions = {
     groups: t("navGroups"),
@@ -1131,12 +995,7 @@ async function load(){
 function ago(ts){
   if(!ts || ts.startsWith("0001")) return "—";
   const s = Math.round((Date.now() - new Date(ts)) / 1000);
-  if (currentLang === "zh") {
-    if(s < 60) return s + " 秒" + " " + t("agoSuffix");
-    if(s < 3600) return Math.round(s/60) + " 分钟" + " " + t("agoSuffix");
-    if(s < 86400) return Math.round(s/3600) + " 小时" + " " + t("agoSuffix");
-    return Math.round(s/86400) + " 天" + " " + t("agoSuffix");
-  } else if (currentLang === "ru") {
+  if (currentLang === "ru") {
     if(s < 60) return s + " с " + t("agoSuffix");
     if(s < 3600) return Math.round(s/60) + " мин " + t("agoSuffix");
     if(s < 86400) return Math.round(s/3600) + " ч " + t("agoSuffix");
@@ -1152,12 +1011,7 @@ function ago(ts){
 function formatDuration(ts) {
   if(!ts || ts.startsWith("0001")) return "";
   const s = Math.round((Date.now() - new Date(ts)) / 1000);
-  if (currentLang === "zh") {
-    if(s < 60) return s + " 秒";
-    if(s < 3600) return Math.round(s/60) + " 分钟";
-    if(s < 86400) return Math.round(s/3600) + " 小时";
-    return Math.round(s/86400) + " 天";
-  } else if (currentLang === "ru") {
+  if (currentLang === "ru") {
     if(s < 60) return s + " с";
     if(s < 3600) return Math.round(s/60) + " мин";
     if(s < 86400) return Math.round(s/3600) + " ч";
@@ -1174,7 +1028,7 @@ const outletByName = n => S.outlets.find(o => o.name === n);
 function oClass(o){ if(!o || !o.enabled) return "off"; return o.healthy ? "up" : "down"; }
 function ms(v){
   if(v <= 0) return "—";
-  return Math.round(v) + (currentLang === "ru" ? " мс" : (currentLang === "zh" ? " 毫秒" : " ms"));
+  return Math.round(v) + (currentLang === "ru" ? " мс" : " ms");
 }
 
 function render(){
@@ -1195,8 +1049,6 @@ function render(){
   renderGroups();
   renderOutlets();
   renderLog();
-  // настройки перерисовываем только при изменении конфига: иначе раз в 3 секунды закрывался бы
-  // открытый список и сбрасывался фокус в полях
   if(tab === "settings"){
     if(!settingsDirty && JSON.stringify(S.config) !== settingsKey) renderSettings();
     else if($("#setMeta")) $("#setMeta").textContent = metaText();
@@ -1207,7 +1059,7 @@ let settingsKey = "";
 const metaText = () => t("metaFooter")(S.version, formatDuration(S.started_at), S.wan_dev || "?");
 
 /* ==========================================================================
-   Groups Tab
+   Nodes Tab (Groups)
    ========================================================================== */
 function renderGroups(){
   const el = $("#tab-groups"), cfg = S.config;
@@ -1284,7 +1136,6 @@ function setupHelp(g){
   let n = 0; while(used.has("Proxy" + n)) n++;
   const px = (st.proxy_ifaces || [])[0] || "Proxy" + n;
   const auth = g.user ? `\ninterface ${px} authentication identity ${g.user}\ninterface ${px} authentication password PASSWORD` : "";
-  // адрес, логин и имя подключения приходят из конфигов — в HTML только экранированными
   const cli = `interface ${px}
 interface ${px} proxy protocol socks5
 interface ${px} proxy upstream ${h} ${p}${auth}
@@ -1311,8 +1162,6 @@ system configuration save`;
   </details>`;
 }
 
-// navigator.clipboard есть только в защищённом контексте (HTTPS или localhost), а веб-интерфейс
-// на роутере открывают по http://192.168.1.1 — там копируем через выделение текста
 function copyCli(btn) {
   const pre = btn.parentElement.querySelector("pre");
   if(!pre) return;
@@ -1371,7 +1220,14 @@ function editGroup(name){
 
   const syncPolicy = () => { $("#gTolWrap").hidden = $("#gPolicy").value !== "fastest"; };
 
-  f.innerHTML = `<h3>${isNew ? esc(t("newGroupTitle")) : esc(t("editGroupTitle")(name))}</h3>
+  f.innerHTML = `
+    <div class="dialog-header">
+      <h3>${isNew ? esc(t("newGroupTitle")) : esc(t("editGroupTitle")(name))}</h3>
+      <button type="button" class="dialog-close-btn" onclick="$('#dlg').close()" aria-label="${esc(t("closeBtn"))}" title="${esc(t("closeBtn"))}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
     <label for="gName">${esc(t("lblName"))}</label>
     <input id="gName" value="${esc(g.name)}" required pattern="[A-Za-z0-9_.\\-]+" title="${esc(t("nameTitle"))}">
     
@@ -1478,12 +1334,11 @@ function editGroup(name){
 }
 
 /* ==========================================================================
-   Outlets Tab
+   Connections Tab (Outlets)
    ========================================================================== */
 function spark(h){
   if(!h || !h.length) return "";
   const W = 300, H = 50, ok = h.filter(v => v > 0), max = Math.max(50, ...ok), n = Math.max(h.length - 1, 1);
-  // неудачные замеры рвут линию; заливка строится под каждым непрерывным отрезком отдельно
   let d = "", fillPath = "", ticks = "", seg = [];
   const flush = () => {
     if(seg.length) fillPath += `M${seg[0][0]} ${H}` + seg.map(([x, y]) => `L${x} ${y}`).join("") + `L${seg[seg.length - 1][0]} ${H}Z`;
@@ -1521,8 +1376,8 @@ function renderOutlets(){
 
   const cards = cfg.outlets.map(oc => {
     const o = outletByName(oc.name) || {};
-    const isOnline = oc.enabled && o.healthy;
     const inGroups = cfg.groups.filter(g => g.members.includes(oc.name)).map(g => g.name);
+    const used = inGroups.length > 0;
 
     return `<article class="card">
       <div class="card__header row">
@@ -1538,7 +1393,13 @@ function renderOutlets(){
             <div class="meta">${esc(oc.iface)} · ${esc(o.dev || oc.dev || "?")}</div>
           </div>
         </div>
-        <button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="editOutlet" data-o="${esc(oc.name)}">${esc(t("editBtn"))}</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="editOutlet" data-o="${esc(oc.name)}">${esc(t("editBtn"))}</button>
+          <button class="ndw-btn ndw-btn--danger ndw-btn--small" data-act="delOutletDirect" data-o="${esc(oc.name)}" ${used ? `disabled title="${esc(t("delDisabledTitle"))}"` : `title="${esc(t("delOutletBtn"))}"`}>
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>${esc(t("delOutletBtn"))}</span>
+          </button>
+        </div>
       </div>
 
       <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
@@ -1579,16 +1440,36 @@ function renderOutlets(){
     </article>`;
   }).join("");
 
-  const add = found.length ? `<div style="margin-top:24px;">
-      <h3 style="font-size:16px; font-weight:700; margin-bottom:12px;">${esc(t("unconfiguredTunnelsTitle"))}</h3>
-      <div class="grid">${found.map(i => `<div class="card row" style="padding:14px 20px;">
-        <div>
-          <span class="dot ${i.connected === "yes" ? "up" : "down"}"></span>
-          <strong>${esc(i.id)}</strong>
-          <div class="meta">${esc(i.description || i.type)}</div>
-        </div>
-        <button class="ndw-btn ndw-btn--primary ndw-btn--small" data-act="addOutlet" data-i="${esc(i.id)}" data-d="${esc(i.description)}">${esc(t("addBtn"))}</button>
-      </div>`).join("")}</div>
+  const add = found.length ? `<div style="margin-top:28px;">
+      <h3 style="font-size:16px; font-weight:700; margin-bottom:12px; color:var(--primary-text);">${esc(t("unconfiguredTunnelsTitle"))}</h3>
+      <div class="card" style="padding:0; overflow:hidden;">
+        <table class="event-table">
+          <tbody>
+            ${found.map((i, idx) => `
+              <tr style="border-bottom:${idx === found.length - 1 ? "none" : "1px solid var(--table-border)"};">
+                <td style="padding:12px 18px; width:220px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="dot ${i.connected === "yes" ? "up" : "down"}"></span>
+                    <strong style="font-size:13px; color:var(--primary-text);">${esc(i.id)}</strong>
+                  </div>
+                </td>
+                <td style="padding:12px 18px; color:var(--text-gray);">
+                  ${esc(i.description || i.type || "—")}
+                </td>
+                <td style="padding:12px 18px; width:140px;">
+                  <span class="ndw-chip ${i.connected === "yes" ? "ndw-chip--success" : "ndw-chip--tag"}">
+                    <span class="dot"></span>
+                    <span>${i.connected === "yes" ? esc(t("connected")) : esc(t("notConnected"))}</span>
+                  </span>
+                </td>
+                <td style="padding:12px 18px; text-align:right; width:120px;">
+                  <button class="ndw-btn ndw-btn--primary ndw-btn--small" data-act="addOutlet" data-i="${esc(i.id)}" data-d="${esc(i.description)}">${esc(t("addBtn"))}</button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
     </div>` : "";
 
   el.innerHTML = (cfg.outlets.length ? `<div class="grid">${cards}</div>` : `<div class="empty">${esc(t("noOutletsYet"))}</div>`) + add;
@@ -1610,13 +1491,32 @@ async function toggleOutlet(name){
   await saveConfig(cfg, o.enabled ? t("outletEnabled")(name) : t("outletDisabled")(name));
 }
 
+async function deleteOutletDirect(name){
+  const cfg = clone(S.config);
+  const used = cfg.groups.some(g => g.members.includes(name));
+  if(used){
+    toast(t("delDisabledTitle"));
+    return;
+  }
+  if(!confirm(t("delOutletConfirm")(name))) return;
+  cfg.outlets = cfg.outlets.filter(x => x.name !== name);
+  await saveConfig(cfg, t("outletDeleted"));
+}
+
 function editOutlet(name){
   const cfg = clone(S.config);
   const o = cfg.outlets.find(x => x.name === name);
   const used = cfg.groups.some(g => g.members.includes(name));
   const f = $("#dlgForm");
 
-  f.innerHTML = `<h3>${esc(t("editOutletTitle")(name))}</h3>
+  f.innerHTML = `
+    <div class="dialog-header">
+      <h3>${esc(t("editOutletTitle")(name))}</h3>
+      <button type="button" class="dialog-close-btn" onclick="$('#dlg').close()" aria-label="${esc(t("closeBtn"))}" title="${esc(t("closeBtn"))}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
     <label for="oName">${esc(t("lblName"))}</label>
     <input id="oName" value="${esc(o.name)}" required pattern="[A-Za-z0-9_.\\-]+">
 
@@ -1645,6 +1545,7 @@ function editOutlet(name){
   };
 
   $("#oDel").onclick = async () => {
+    if(!confirm(t("delOutletConfirm")(name))) return;
     cfg.outlets = cfg.outlets.filter(x => x.name !== name);
     if(await saveConfig(cfg, t("outletDeleted"))) $("#dlg").close();
   };
@@ -1667,11 +1568,11 @@ function renderLog(){
 }
 
 /* ==========================================================================
-   Settings Tab
+   Settings Tab (Stacked Vertically)
    ========================================================================== */
 function renderSettings(){
   const c = S.config, p = c.probe;
-  $("#tab-settings").innerHTML = `<div class="grid">
+  $("#tab-settings").innerHTML = `<div class="settings-stack">
     <!-- Interface Language Card -->
     <div class="card">
       <h2>${esc(t("sectionLang"))}</h2>
@@ -1679,7 +1580,6 @@ function renderSettings(){
       <select id="settingLangSelect" style="margin:4px 0 10px;">
         <option value="en" ${currentLang === "en" ? "selected" : ""}>English (default)</option>
         <option value="ru" ${currentLang === "ru" ? "selected" : ""}>Русский</option>
-        <option value="zh" ${currentLang === "zh" ? "selected" : ""}>简体中文 (Chinese)</option>
       </select>
       <p class="hint">${esc(t("langHint"))}</p>
     </div>
@@ -1703,7 +1603,7 @@ function renderSettings(){
     </form>
 
     <!-- Probe Settings Card -->
-    <form class="card" id="fProbe" style="grid-column: 1 / -1;">
+    <form class="card" id="fProbe">
       <h2>${esc(t("sectionProbe"))}</h2>
       <div class="two">
         <div>
@@ -1744,24 +1644,23 @@ function renderSettings(){
         <button type="button" class="ndw-btn ndw-btn--primary" id="pSave">${esc(t("saveBtn"))}</button>
       </div>
     </form>
-  </div>
 
-  <!-- Raw JSON Config Card -->
-  <div class="card" style="margin-top:20px;">
-    <h2>${esc(t("sectionRaw"))}</h2>
-    <p class="hint">${esc(t("rawHint"))}</p>
-    <textarea id="raw" spellcheck="false" aria-label="JSON Configuration" style="margin-top:10px;">${esc(JSON.stringify(c, null, 2))}</textarea>
-    <div class="foot">
-      <button type="button" class="ndw-btn ndw-btn--outline" id="rawReset">${esc(t("rawResetBtn"))}</button>
-      <button type="button" class="ndw-btn ndw-btn--primary" id="rawSave">${esc(t("rawSaveBtn"))}</button>
+    <!-- Raw JSON Config Card -->
+    <div class="card">
+      <h2>${esc(t("sectionRaw"))}</h2>
+      <p class="hint">${esc(t("rawHint"))}</p>
+      <textarea id="raw" spellcheck="false" aria-label="JSON Configuration" style="margin-top:10px;">${esc(JSON.stringify(c, null, 2))}</textarea>
+      <div class="foot">
+        <button type="button" class="ndw-btn ndw-btn--outline" id="rawReset">${esc(t("rawResetBtn"))}</button>
+        <button type="button" class="ndw-btn ndw-btn--primary" id="rawSave">${esc(t("rawSaveBtn"))}</button>
+      </div>
     </div>
-  </div>
 
-  <p class="meta" style="margin-top:16px;" id="setMeta">${esc(metaText())}</p>`;
+    <p class="meta" style="margin-top:4px;" id="setMeta">${esc(metaText())}</p>
+  </div>`;
 
   settingsDirty = false;
   settingsKey = JSON.stringify(c);
-  // выбор языка — не правка настроек: без сброса флага вкладка осталась бы на прежнем языке
   $("#settingLangSelect").onchange = e => { changeLang(e.target.value); renderSettings(); };
   $("#tab-settings").oninput = () => { settingsDirty = true; };
 
@@ -1815,6 +1714,7 @@ document.addEventListener("click", e => {
     case "editGroup": editGroup(d.g); break;
     case "toggleOutlet": toggleOutlet(d.o); break;
     case "editOutlet": editOutlet(d.o); break;
+    case "delOutletDirect": deleteOutletDirect(d.o); break;
     case "addOutlet": addOutlet(d.i, d.d); break;
   }
 });
