@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
+	"net/netip"
 	"sort"
 	"time"
 )
@@ -67,13 +67,14 @@ func (a *App) auth(next http.Handler) http.Handler {
 }
 
 // isLocalAddr — клиент из локальной сети: loopback, частные диапазоны, link-local.
+// netip понимает зону IPv6 (fe80::1%br0), которую RemoteAddr отдаёт для link-local клиентов.
 func isLocalAddr(remote string) bool {
-	host, _, err := net.SplitHostPort(remote)
+	ap, err := netip.ParseAddrPort(remote)
 	if err != nil {
 		return false
 	}
-	ip := net.ParseIP(host)
-	return ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast())
+	ip := ap.Addr().Unmap()
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast()
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

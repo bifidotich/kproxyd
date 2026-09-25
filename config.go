@@ -16,7 +16,7 @@ import (
 // ProbeCfg — параметры проверки узлов.
 type ProbeCfg struct {
 	URL              string `json:"url"`
-	DNS              string `json:"dns"` // DNS-сервер для имени из url, запрос идёт через проверяемый туннель; "system" = резолвер роутера
+	DNS              string `json:"dns"` // DNS для проверки и для имён в SOCKS5-запросах, запрос идёт через туннель; "system" = резолвер роутера
 	IntervalSec      int    `json:"interval_sec"`
 	TimeoutMs        int    `json:"timeout_ms"`
 	FailThreshold    int    `json:"fail_threshold"`    // столько неудач подряд -> узел считается упавшим
@@ -46,7 +46,7 @@ type GroupCfg struct {
 	ProxyIface   string   `json:"proxy_iface,omitempty"` // proxy: интерфейс Keenetic (Proxy0)
 	Lists        []string `json:"lists"`                 // object-group fqdn, привязанные к группе
 	AllDown      string   `json:"all_down"`              // reject | isp
-	KillOnSwitch bool     `json:"kill_on_switch"`        // рвать соединения при любом переключении
+	KillOnSwitch bool     `json:"kill_on_switch"`        // proxy: рвать SOCKS5-соединения при любом переключении (в route соединения ведёт ядро)
 }
 
 type WebCfg struct {

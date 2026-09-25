@@ -54,15 +54,26 @@ func (k *Keenetic) CLI(cmd string) error {
 	if err != nil {
 		return fmt.Errorf("ndmc %q: %v: %s", cmd, err, firstLine(out))
 	}
-	if looksLikeError(out) {
+	if looksLikeError(stripArgs(out, cmd)) {
 		return fmt.Errorf("ndmc %q: %s", cmd, firstLine(out))
 	}
 	return nil
 }
 
-var errRe = regexp.MustCompile(`(?i)(error|no such|invalid|not found|unknown|failed)`)
+var errRe = regexp.MustCompile(`(?i)\b(error|no such|invalid|not found|unknown|failed)\b`)
 
 func looksLikeError(s string) bool { return errRe.MatchString(s) }
+
+// stripArgs убирает из вывода ndmc слова самой команды: Keenetic повторяет в ответе имена
+// списков, интерфейсов и описаний, и имя вроде "server-error" не должно считаться ошибкой.
+func stripArgs(out, cmd string) string {
+	for _, w := range strings.Fields(cmd) {
+		if len(w) > 2 {
+			out = strings.ReplaceAll(out, w, " ")
+		}
+	}
+	return out
+}
 
 func firstLine(s string) string {
 	s = strings.TrimSpace(s)

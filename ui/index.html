@@ -266,8 +266,10 @@ function editGroup(name){
     <label for="gAll">Если все выходы группы недоступны</label><select id="gAll">
       <option value="reject" ${g.all_down==="reject"?"selected":""}>блокировать (ничего не утекает к провайдеру)</option>
       <option value="isp" ${g.all_down==="isp"?"selected":""}>пускать через провайдера</option></select>
-    <div class="chk"><input type="checkbox" id="gKill" ${g.kill_on_switch?"checked":""}><label for="gKill" style="margin:0;color:var(--ink)">Рвать открытые соединения при любом переключении</label></div>
-    <p class="hint">Соединения через упавший выход закрываются всегда — клиенты сразу переподключаются через новый.</p>
+    <div class="only-proxy">
+      <div class="chk"><input type="checkbox" id="gKill" ${g.kill_on_switch?"checked":""}><label for="gKill" style="margin:0;color:var(--ink)">Рвать открытые соединения при любом переключении</label></div>
+      <p class="hint">Соединения через упавший выход закрываются всегда — клиенты сразу переподключаются через новый.</p>
+    </div>
     <div class="foot">
       ${isNew?"":`<button type="button" class="danger left" id="gDel">Удалить группу</button>`}
       ${!isNew && g.mode==="proxy" ? `<button type="button" id="gPxSetup">Настроить Proxy в Keenetic</button>`:""}
@@ -402,7 +404,7 @@ function renderSettings(){
     <form class="card" id="fProbe"><h2>Проверка выходов</h2>
       <label for="pUrl">Адрес для проверки</label><input id="pUrl" value="${esc(p.url)}">
       <label for="pDns">DNS для проверки</label><input id="pDns" value="${esc(p.dns||"")}" placeholder="1.1.1.1:53">
-      <p class="hint">Запрос к DNS идёт через проверяемый туннель. <code>system</code> — использовать DNS роутера.</p>
+      <p class="hint">Через этот DNS, тоже по туннелю, проверяются выходы и резолвятся имена в SOCKS5-запросах. <code>system</code> — использовать DNS роутера.</p>
       <div class="two">
         <div><label for="pInt">Интервал, с</label><input id="pInt" type="number" min="2" value="${p.interval_sec}"></div>
         <div><label for="pTo">Таймаут, мс</label><input id="pTo" type="number" min="200" value="${p.timeout_ms}"></div>

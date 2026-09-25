@@ -172,18 +172,41 @@ func (a *App) reconcileSocks(c *Config) {
 		}
 		s, err := startSocks(a, name, g.Listen, g.User, g.Password)
 		if err != nil {
+			if gs.ListenEr != err.Error() { // повторные попытки идут каждый цикл проверки — не засоряем журнал
+				go a.logf("error", "группа %s: не удалось открыть %s: %v", name, g.Listen, err)
+			}
 			gs.ListenOK, gs.ListenEr = false, err.Error()
-			go a.logf("error", "группа %s: не удалось открыть %s: %v", name, g.Listen, err)
 			continue
+		}
+		if gs.ListenEr != "" {
+			go a.logf("info", "группа %s: SOCKS5 открыт на %s", name, g.Listen)
 		}
 		gs.ListenOK, gs.ListenEr = true, ""
 		a.socks[name] = s
 	}
 }
 
-// pick возвращает устройство, через которое группа должна отправить новое соединение.
-func (a *App) pick(group string) (dev, outlet string, ok bool) {
+// retrySocks повторяет открытие SOCKS5-портов, которые не открылись раньше (порт был занят).
+// Берёт свежий конфиг под applyMu, чтобы не откатить изменение, применяемое параллельно.
+func (a *App) retrySocks() {
+	a.applyMu.Lock()
+	defer a.applyMu.Unlock()
 	c := a.store.Get()
+	a.mu.RLock()
+	missing := false
+	for _, g := range c.Groups {
+		if _, ok := a.socks[g.Name]; g.Mode == "proxy" && !ok {
+			missing = true
+		}
+	}
+	a.mu.RUnlock()
+	if missing {
+		a.reconcileSocks(c)
+	}
+}
+
+// pick возвращает устройство, через которое группа должна отправить новое соединение.
+func (a *App) pick(c *Config, group string) (dev, outlet string, ok bool) {
 	g := c.group(group)
 	if g == nil {
 		return "", "", false
@@ -211,6 +234,7 @@ func (a *App) pick(group string) (dev, outlet string, ok bool) {
 
 func (a *App) probeLoop(ctx context.Context) {
 	for {
+		a.retrySocks()
 		c := a.store.Get()
 		a.probeAll(c)
 		t := time.NewTimer(time.Duration(c.Probe.IntervalSec) * time.Second)
@@ -344,12 +368,10 @@ func (a *App) probeOne(c *Config, o OutletCfg, kstate map[string]KIface) {
 	}
 }
 
-// httpProbe делает HTTP-запрос, привязав сокет к устройству туннеля.
-// Имя хоста резолвится DNS-сервером dns тоже через туннель: иначе сбой DNS роутера
-// разом «уронил» бы все выходы. dns == "system" — обычный резолвер роутера.
-// Сертификат не проверяется намеренно: это проверка живости канала, а не доверия к сайту,
-// и на роутере часто нет системного набора корневых сертификатов.
-func httpProbe(dev, rawURL, dns string, timeout time.Duration) (int, error) {
+// tunnelDialer — dialer, привязанный к устройству dev. Имена резолвятся DNS-сервером dns
+// тоже через это устройство: ответ не зависит от DNS роутера/провайдера (подмена, блокировки)
+// и соответствует выходу туннеля. dns == "system" — обычный резолвер роутера.
+func tunnelDialer(dev, dns string, timeout time.Duration) *net.Dialer {
 	d := bindDialer(dev, timeout)
 	if dns != "system" {
 		rd := bindDialer(dev, timeout)
@@ -360,6 +382,16 @@ func httpProbe(dev, rawURL, dns string, timeout time.Duration) (int, error) {
 			},
 		}
 	}
+	return d
+}
+
+// httpProbe делает HTTP-запрос через устройство туннеля (и DNS тоже через него: иначе сбой
+// DNS роутера разом «уронил» бы все выходы). Живым выход считается только при ответе 2xx:
+// редирект или 4xx означают, что ответил не целевой сервер (портал авторизации, заглушка).
+// Сертификат не проверяется намеренно: это проверка живости канала, а не доверия к сайту,
+// и на роутере часто нет системного набора корневых сертификатов.
+func httpProbe(dev, rawURL, dns string, timeout time.Duration) (int, error) {
+	d := tunnelDialer(dev, dns, timeout)
 	tr := &http.Transport{
 		DialContext: func(ctx context.Context, _, addr string) (net.Conn, error) {
 			return d.DialContext(ctx, "tcp4", addr)
@@ -377,8 +409,8 @@ func httpProbe(dev, rawURL, dns string, timeout time.Duration) (int, error) {
 		return -1, err
 	}
 	resp.Body.Close()
-	if resp.StatusCode >= 500 {
-		return -1, fmt.Errorf("HTTP %d", resp.StatusCode)
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return -1, fmt.Errorf("HTTP %d вместо 2xx", resp.StatusCode)
 	}
 	ms := int(time.Since(start).Milliseconds())
 	if ms < 1 {

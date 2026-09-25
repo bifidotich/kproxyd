@@ -69,7 +69,8 @@ const (
 
 func (s *SocksServer) handle(c net.Conn) {
 	defer c.Close()
-	if !s.app.store.Get().AllowPublic && !isLocalAddr(c.RemoteAddr().String()) {
+	cfg := s.app.store.Get()
+	if !cfg.AllowPublic && !isLocalAddr(c.RemoteAddr().String()) {
 		return // не даём прокси стать открытым для интернета, если он слушает 0.0.0.0
 	}
 	_ = c.SetDeadline(time.Now().Add(15 * time.Second))
@@ -152,13 +153,20 @@ func (s *SocksServer) handle(c net.Conn) {
 	}
 	target := net.JoinHostPort(host, strconv.Itoa(int(binary.BigEndian.Uint16(pb[:]))))
 
-	dev, outlet, ok := s.app.pick(s.group)
+	dev, outlet, ok := s.app.pick(cfg, s.group)
 	if !ok {
 		reply(c, repNetUnreach, nil)
 		return
 	}
+	// имя из запроса (ATYP=3) резолвим через тот же туннель; при выходе через провайдера — обычным DNS
+	var d *net.Dialer
+	if outlet == "isp" {
+		d = bindDialer(dev, 10*time.Second)
+	} else {
+		d = tunnelDialer(dev, cfg.Probe.DNS, 10*time.Second)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	rc, err := bindDialer(dev, 10*time.Second).DialContext(ctx, network, target)
+	rc, err := d.DialContext(ctx, network, target)
 	cancel()
 	if err != nil {
 		reply(c, dialErrCode(err), nil)
@@ -232,6 +240,9 @@ func dialErrCode(err error) byte {
 }
 
 // pipe копирует данные в обе стороны; на Linux io.Copy между TCP-сокетами использует splice.
+// Когда одна сторона закончила передачу, её FIN передаётся дальше (CloseWrite), а вторая
+// работает, сколько нужно: клиент мог отправить запрос и закрыть запись, а ответ (большой
+// файл) идёт ещё долго. Мёртвого собеседника обнаружит TCP keepalive.
 func pipe(a, b net.Conn) {
 	done := make(chan struct{}, 2)
 	cp := func(dst, src net.Conn) {
@@ -241,16 +252,16 @@ func pipe(a, b net.Conn) {
 		}
 		done <- struct{}{}
 	}
+	for _, c := range []net.Conn{a, b} {
+		if tc, ok := c.(*net.TCPConn); ok {
+			_ = tc.SetKeepAlive(true)
+			_ = tc.SetKeepAlivePeriod(30 * time.Second)
+		}
+	}
 	go cp(a, b)
 	go cp(b, a)
 	<-done
-	// вторая сторона: даём дочитать хвост, затем закрываем принудительно
-	t := time.NewTimer(30 * time.Second)
-	select {
-	case <-done:
-	case <-t.C:
-	}
-	t.Stop()
+	<-done
 	a.Close()
 	b.Close()
 }
