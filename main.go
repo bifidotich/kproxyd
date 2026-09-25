@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,14 +13,19 @@ import (
 )
 
 var (
-	version   = "0.1.0"
+	version   = "dev" // подставляется при сборке: -ldflags "-X main.version=..."
 	startedAt = time.Now()
 )
 
 func main() {
 	cfgPath := flag.String("config", "/opt/etc/kproxyd/config.json", "путь к файлу конфигурации")
 	logPath := flag.String("log", "", "писать журнал в этот файл с ротацией по 512 КБ (по умолчанию — в stderr)")
+	showVersion := flag.Bool("version", false, "показать версию и выйти")
 	flag.Parse()
+	if *showVersion {
+		fmt.Println(version)
+		return
+	}
 	log.SetFlags(log.LstdFlags)
 	if *logPath != "" {
 		lf, err := openRotLog(*logPath, 512<<10)

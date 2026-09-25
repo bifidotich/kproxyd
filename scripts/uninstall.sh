@@ -1,15 +1,21 @@
 #!/bin/sh
 # Удаление kproxyd с Keenetic.
-#   sh scripts/uninstall.sh              удалить, конфиг kproxyd оставить
-#   sh scripts/uninstall.sh --purge      удалить вместе с конфигом
-#   sh scripts/uninstall.sh --dry-run    только показать, что будет сделано
-#   -y                                   не спрашивать подтверждение
+#   sh /opt/sbin/kproxyd-uninstall              удалить, конфиг kproxyd оставить
+#   sh /opt/sbin/kproxyd-uninstall --purge      удалить вместе с конфигом
+#   sh /opt/sbin/kproxyd-uninstall --dry-run    только показать, что будет сделано
+#   -y                                          не спрашивать подтверждение
+# Без установленного скрипта:
+#   curl -fsSL https://github.com/bifidotich/kproxyd/releases/download/latest/uninstall.sh | sh -s -- --purge
 # Конфигурацию Keenetic kproxyd не меняет, поэтому и при удалении её не трогает:
 # прокси-подключение и маршруты списков в него убираются вручную.
 BIN=/opt/sbin/kproxyd
 INIT=/opt/etc/init.d/S99kproxyd
 CFGDIR=/opt/etc/kproxyd
-FILES="$BIN $INIT /opt/var/run/kproxyd.pid /opt/var/run/kproxyd.child.pid /opt/var/log/kproxyd.log /opt/var/log/kproxyd.log.1"
+FILES="$BIN $INIT /opt/sbin/kproxyd-uninstall /opt/var/run/kproxyd.pid /opt/var/run/kproxyd.child.pid /opt/var/log/kproxyd.log /opt/var/log/kproxyd.log.1"
+
+usage() {
+    echo "Параметры: --purge (удалить и конфиг), --dry-run (только показать), -y (не спрашивать)"
+}
 
 PURGE="" DRY="" YES=""
 for a in "$@"; do
@@ -17,7 +23,8 @@ for a in "$@"; do
         --purge) PURGE=1 ;;
         --dry-run) DRY=1 ;;
         -y|--yes) YES=1 ;;
-        *) echo "Неизвестный параметр: $a"; sed -n '2,6p' "$0"; exit 1 ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Неизвестный параметр: $a"; usage; exit 1 ;;
     esac
 done
 
@@ -31,7 +38,12 @@ fi
 [ -n "$DRY" ] && { echo "(--dry-run: ничего не изменено)"; exit 0; }
 if [ -z "$YES" ]; then
     printf "Продолжить? [y/N] "
-    read -r ans
+    # спрашиваем у терминала: при «curl | sh» стандартный ввод занят самим скриптом
+    if ! { read -r ans < /dev/tty; } 2>/dev/null; then
+        echo
+        echo "Нет терминала, чтобы спросить подтверждение. Запустите с -y."
+        exit 1
+    fi
     case "$ans" in y|Y|yes|да|Да) ;; *) echo "Отменено."; exit 0 ;; esac
 fi
 
