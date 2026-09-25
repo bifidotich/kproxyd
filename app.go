@@ -159,6 +159,7 @@ func (a *App) reconcileSocks(c *Config) {
 			continue
 		}
 		s.SetAuth(g.User, g.Password)
+		s.SetLimit(g.MaxConns)
 	}
 	for name, g := range want {
 		gs := a.groups[name]
@@ -169,7 +170,7 @@ func (a *App) reconcileSocks(c *Config) {
 			gs.ListenOK, gs.ListenEr = true, ""
 			continue
 		}
-		s, err := startSocks(a, name, g.Listen, g.User, g.Password)
+		s, err := startSocks(a, name, g.Listen, g.User, g.Password, g.MaxConns)
 		if err != nil {
 			if gs.ListenEr != err.Error() { // повторные попытки идут каждый цикл проверки — не засоряем журнал
 				go a.logf("error", "группа %s: не удалось открыть %s: %v", name, g.Listen, err)

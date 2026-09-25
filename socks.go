@@ -9,6 +9,7 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -23,14 +24,20 @@ type SocksServer struct {
 
 	mu         sync.RWMutex
 	user, pass string
+
+	// предел одновременных соединений: считаются и те, что ещё в рукопожатии
+	active     atomic.Int64
+	limit      atomic.Int64
+	lastRefuse time.Time // только из serve(): когда последний раз писали в журнал об отказе
 }
 
-func startSocks(app *App, group, addr, user, pass string) (*SocksServer, error) {
+func startSocks(app *App, group, addr, user, pass string, limit int) (*SocksServer, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 	s := &SocksServer{app: app, group: group, addr: addr, ln: ln, user: user, pass: pass}
+	s.limit.Store(int64(limit))
 	go s.serve()
 	return s, nil
 }
@@ -40,6 +47,8 @@ func (s *SocksServer) SetAuth(user, pass string) {
 	s.user, s.pass = user, pass
 	s.mu.Unlock()
 }
+
+func (s *SocksServer) SetLimit(n int) { s.limit.Store(int64(n)) }
 
 func (s *SocksServer) Close() { s.ln.Close() }
 
@@ -53,7 +62,20 @@ func (s *SocksServer) serve() {
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
-		go s.handle(c)
+		// при пределе сразу закрываем: ждать освобождения нельзя — очередь росла бы без границ
+		if lim := s.limit.Load(); s.active.Load() >= lim {
+			c.Close()
+			if time.Since(s.lastRefuse) > time.Minute {
+				s.lastRefuse = time.Now()
+				go s.app.logf("warn", "группа %s: достигнут предел одновременных соединений (%d), новые отклоняются", s.group, lim)
+			}
+			continue
+		}
+		s.active.Add(1)
+		go func() {
+			defer s.active.Add(-1)
+			s.handle(c)
+		}()
 	}
 }
 

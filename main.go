@@ -18,8 +18,16 @@ var (
 
 func main() {
 	cfgPath := flag.String("config", "/opt/etc/kproxyd/config.json", "путь к файлу конфигурации")
+	logPath := flag.String("log", "", "писать журнал в этот файл с ротацией по 512 КБ (по умолчанию — в stderr)")
 	flag.Parse()
 	log.SetFlags(log.LstdFlags)
+	if *logPath != "" {
+		lf, err := openRotLog(*logPath, 512<<10)
+		if err != nil {
+			log.Fatalf("журнал: %v", err)
+		}
+		log.SetOutput(lf)
+	}
 
 	store, created, err := loadStore(*cfgPath)
 	if err != nil {

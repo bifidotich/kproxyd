@@ -200,7 +200,7 @@ function renderGroups(){
       <div class="row"><h2>${esc(g.name)}</h2><button data-act="editGroup" data-g="${esc(g.name)}">Изменить</button></div>
       <div class="headline ${act?"":"none"}">Сейчас: <b>${esc(act||"нет доступных выходов")}</b>${st.since&&act?` · ${ago(st.since)}`:""}${st.reason?` · ${esc(st.reason)}`:""}</div>
       <ol class="track">${stops}</ol>
-      <div class="meta">SOCKS5 ${esc(g.listen)} · выбор ${pol} · соединений ${st.conns||0}</div>
+      <div class="meta">SOCKS5 ${esc(g.listen)} · выбор ${pol} · соединений ${st.conns||0} из ${g.max_conns||256}</div>
       <div style="margin-top:8px">${lists}</div>
       ${st.listen_err?`<div class="err">SOCKS не запущен: ${esc(st.listen_err)}</div>`:""}
       ${st.keenetic_msg? `<div class="${st.keenetic_ok?"meta":"err"}" style="margin-top:6px">Keenetic: ${esc(st.keenetic_msg)}</div>`:""}
@@ -254,7 +254,7 @@ function editGroup(name){
   const usedPorts = cfg.groups.map(g=>g.listen).filter(Boolean);
   let port = 1081; while(usedPorts.includes("127.0.0.1:"+port)) port++;
   const g = isNew ? {name:"", policy:"fallback", members:cfg.outlets.map(o=>o.name), tolerance_ms:150,
-      listen:"127.0.0.1:"+port, all_down:"reject", kill_on_switch:false, user:"", password:""}
+      listen:"127.0.0.1:"+port, all_down:"reject", kill_on_switch:false, max_conns:256, user:"", password:""}
     : clone(cfg.groups.find(x=>x.name===name));
   let order = [...g.members, ...cfg.outlets.map(o=>o.name).filter(n=>!g.members.includes(n))];
   let checked = new Set(g.members);
@@ -285,6 +285,8 @@ function editGroup(name){
     <label for="gAll">Если все выходы группы недоступны</label><select id="gAll">
       <option value="reject" ${g.all_down==="reject"?"selected":""}>блокировать (ничего не утекает к провайдеру)</option>
       <option value="isp" ${g.all_down==="isp"?"selected":""}>пускать через провайдера</option></select>
+    <label for="gMax">Не больше соединений одновременно</label><input id="gMax" type="number" min="1" max="10000" required value="${g.max_conns||256}">
+    <p class="hint">Сверх предела новые соединения отклоняются — чтобы kproxyd не занял всю память роутера. Соединение занимает до ~100 КБ.</p>
     <div class="chk"><input type="checkbox" id="gKill" ${g.kill_on_switch?"checked":""}><label for="gKill" style="margin:0;color:var(--ink)">Рвать открытые соединения при любом переключении</label></div>
     <p class="hint">Соединения через упавший выход закрываются всегда — клиенты сразу переподключаются через новый.</p>
     <div class="foot">
@@ -307,7 +309,7 @@ function editGroup(name){
       tolerance_ms: +$("#gTol").value||0, members: order.filter(x=>checked.has(x)),
       listen: $("#gListen").value.trim(),
       user: $("#gUser").value.trim(), password: $("#gPass").value,
-      all_down: $("#gAll").value, kill_on_switch: $("#gKill").checked };
+      all_down: $("#gAll").value, kill_on_switch: $("#gKill").checked, max_conns: +$("#gMax").value };
     if(n.pinned && !n.members.includes(n.pinned)) n.pinned = "";
     if(isNew) cfg.groups.push(n); else cfg.groups[cfg.groups.findIndex(x=>x.name===name)] = n;
     if(await saveConfig(cfg, "Группа сохранена")) $("#dlg").close();

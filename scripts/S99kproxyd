@@ -22,7 +22,7 @@ running() { [ -f "$PIDF" ] && alive "$(cat "$PIDF")" _supervise; }
 
 log() { echo "$(date '+%Y/%m/%d %H:%M:%S') [сторож] $*" >> "$LOG"; }
 uptime_s() { cut -d. -f1 /proc/uptime; }
-# простая ротация: лог больше 512 КБ начинаем заново
+# ротация перед запуском; пока kproxyd работает, журнал по 512 КБ обрезает он сам (-log)
 rotate() { [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 524288 ] && mv "$LOG" "$LOG.1"; }
 
 # Цикл сторожа. Паузы делаем через «sleep & wait»: wait, в отличие от sleep, прерывается сигналом.
@@ -42,7 +42,7 @@ supervise() {
     while [ -z "$stopping" ]; do
         rotate
         started=$(uptime_s)
-        "$BIN" -config "$CFG" >> "$LOG" 2>&1 &
+        "$BIN" -config "$CFG" -log "$LOG" >> "$LOG" 2>&1 &
         child=$!
         echo "$child" > "$CPIDF"
         [ -n "$stopping" ] && kill "$child" 2>/dev/null

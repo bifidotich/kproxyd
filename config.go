@@ -46,7 +46,15 @@ type GroupCfg struct {
 	Password     string   `json:"password,omitempty"`
 	AllDown      string   `json:"all_down"`       // reject | isp
 	KillOnSwitch bool     `json:"kill_on_switch"` // рвать SOCKS5-соединения при любом переключении
+	MaxConns     int      `json:"max_conns"`      // предел одновременных SOCKS5-соединений группы
 }
+
+// defaultMaxConns — предел соединений группы по умолчанию. Соединение в худшем случае
+// занимает ~100 КБ памяти, 256 соединений укладываются в ~25 МБ даже на роутере со 128 МБ.
+const (
+	defaultMaxConns = 256
+	maxMaxConns     = 10000
+)
 
 type WebCfg struct {
 	Listen   string `json:"listen"`
@@ -136,6 +144,9 @@ func (c *Config) fillDefaults() {
 		if g.AllDown == "" {
 			g.AllDown = "reject"
 		}
+		if g.MaxConns == 0 {
+			g.MaxConns = defaultMaxConns
+		}
 		if g.Members == nil {
 			g.Members = []string{}
 		}
@@ -210,6 +221,9 @@ func (c *Config) validate() error {
 		case "reject", "isp":
 		default:
 			return fmt.Errorf("группа %q: all_down должен быть reject или isp", g.Name)
+		}
+		if g.MaxConns < 1 || g.MaxConns > maxMaxConns {
+			return fmt.Errorf("группа %q: max_conns должен быть от 1 до %d", g.Name, maxMaxConns)
 		}
 		if len(g.Members) == 0 {
 			return fmt.Errorf("группа %q: нет ни одного выхода", g.Name)
