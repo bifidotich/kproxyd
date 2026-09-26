@@ -467,6 +467,15 @@ dialog form { padding: 22px; overflow: auto; max-height: 90vh; }
 }
 .dialog-close-btn:hover { background-color: var(--menu-hover); color: var(--primary-text); }
 
+/* HTML Confirm Dialog */
+.confirm-dialog {
+  width: min(440px, 92vw);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+}
+.confirm-dialog__content {
+  padding: 22px;
+}
+
 /* Toast */
 #toast {
   position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
@@ -592,6 +601,24 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
 </div>
 
 <dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
+
+<!-- HTML Confirmation Dialog -->
+<dialog id="confirmDlg" class="confirm-dialog">
+  <div class="confirm-dialog__content">
+    <div class="dialog-header">
+      <h3 id="confirmTitle" style="margin:0; font-size:16px; font-weight:700;"></h3>
+      <button type="button" class="dialog-close-btn" id="confirmCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="confirmMsg" style="font-size:13px; line-height:20px; color:var(--primary-text); margin:12px 0 20px;"></div>
+    <div class="foot">
+      <button type="button" class="ndw-btn ndw-btn--outline" id="confirmCancelBtn"></button>
+      <button type="button" class="ndw-btn ndw-btn--danger" id="confirmOkBtn"></button>
+    </div>
+  </div>
+</dialog>
+
 <div id="toast" role="status"></div>
 
 <script>
@@ -742,7 +769,11 @@ const i18n = {
     devPlaceholder: "auto-detected",
     devHint: "Specify only if auto-detection was incorrect. Device list: <code>ls /sys/class/net</code>.",
     delOutletBtn: "Delete",
-    delDisabledTitle: "Remove connection from all nodes first"
+    delDisabledTitle: "Remove connection from all nodes first",
+    confirmTitle: "Confirmation",
+    confirmOkBtn: "Delete",
+    delGroupTitle: "Delete Node",
+    delOutletTitle: "Delete Connection"
   },
 
   ru: {
@@ -886,7 +917,11 @@ const i18n = {
     devPlaceholder: "определяется автоматически",
     devHint: "Указывайте, только если автоопределение ошиблось. Список устройств: <code>ls /sys/class/net</code>.",
     delOutletBtn: "Удалить",
-    delDisabledTitle: "Сначала исключите подключение из всех узлов"
+    delDisabledTitle: "Сначала исключите подключение из всех узлов",
+    confirmTitle: "Подтверждение действия",
+    confirmOkBtn: "Удалить",
+    delGroupTitle: "Удаление узла",
+    delOutletTitle: "Удаление подключения"
   }
 };
 
@@ -915,6 +950,40 @@ function toast(msg){
   el.classList.add("show");
   clearTimeout(el._h);
   el._h = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+function confirmModal(msg, { title = t("confirmTitle"), okText = t("confirmOkBtn"), cancelText = t("cancelBtn"), isDanger = true } = {}) {
+  return new Promise(resolve => {
+    const dlg = $("#confirmDlg");
+    $("#confirmTitle").textContent = title;
+    $("#confirmMsg").textContent = msg;
+
+    const okBtn = $("#confirmOkBtn");
+    okBtn.textContent = okText;
+    okBtn.className = isDanger ? "ndw-btn ndw-btn--danger" : "ndw-btn ndw-btn--primary";
+
+    const cancelBtn = $("#confirmCancelBtn");
+    cancelBtn.textContent = cancelText;
+
+    let settled = false;
+    const cleanup = (val) => {
+      if (!settled) {
+        settled = true;
+        dlg.close();
+        resolve(val);
+      }
+    };
+
+    okBtn.onclick = () => cleanup(true);
+    cancelBtn.onclick = () => cleanup(false);
+    $("#confirmCloseBtn").onclick = () => cleanup(false);
+    dlg.oncancel = (e) => {
+      e.preventDefault();
+      cleanup(false);
+    };
+
+    dlg.showModal();
+  });
 }
 
 function applyTheme(theme) {
@@ -1324,7 +1393,7 @@ function editGroup(name){
 
   if(!isNew){
     $("#gDel").onclick = async () => {
-      if(!confirm(t("delGroupConfirm")(name))) return;
+      if(!await confirmModal(t("delGroupConfirm")(name), { title: t("delGroupTitle") })) return;
       cfg.groups = cfg.groups.filter(x => x.name !== name);
       if(await saveConfig(cfg, t("groupDeleted"))) $("#dlg").close();
     };
@@ -1498,7 +1567,7 @@ async function deleteOutletDirect(name){
     toast(t("delDisabledTitle"));
     return;
   }
-  if(!confirm(t("delOutletConfirm")(name))) return;
+  if(!await confirmModal(t("delOutletConfirm")(name), { title: t("delOutletTitle") })) return;
   cfg.outlets = cfg.outlets.filter(x => x.name !== name);
   await saveConfig(cfg, t("outletDeleted"));
 }
@@ -1545,7 +1614,7 @@ function editOutlet(name){
   };
 
   $("#oDel").onclick = async () => {
-    if(!confirm(t("delOutletConfirm")(name))) return;
+    if(!await confirmModal(t("delOutletConfirm")(name), { title: t("delOutletTitle") })) return;
     cfg.outlets = cfg.outlets.filter(x => x.name !== name);
     if(await saveConfig(cfg, t("outletDeleted"))) $("#dlg").close();
   };
