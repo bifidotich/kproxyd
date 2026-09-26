@@ -583,6 +583,58 @@ dialog form { padding: 22px; overflow: auto; max-height: 90vh; }
   padding: 22px;
 }
 
+/* HTML Login Dialog */
+.login-dialog {
+  width: min(380px, 92vw);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+.login-dialog__content {
+  padding: 24px;
+}
+.login-dialog__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.login-dialog__logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--menu-active);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-dialog__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-text);
+  line-height: 1.2;
+}
+.login-dialog__subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-gray);
+}
+.login-error {
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+html.dark .login-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
 /* Toast */
 #toast {
   position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
@@ -729,6 +781,10 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
       <button class="ndw-btn ndw-btn--outline ndw-btn--small" id="bSync" title="Refresh Keenetic status">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
       </button>
+
+      <button class="ndw-btn ndw-btn--outline ndw-btn--small" id="bLogout" title="Sign out">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
     </div>
   </header>
 
@@ -808,6 +864,38 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
       <button type="button" class="ndw-btn ndw-btn--outline" id="confirmCancelBtn"></button>
       <button type="button" class="ndw-btn ndw-btn--danger" id="confirmOkBtn"></button>
     </div>
+  </div>
+</dialog>
+
+<!-- HTML Login Dialog -->
+<dialog id="loginDlg" class="login-dialog">
+  <div class="login-dialog__content">
+    <div class="login-dialog__brand">
+      <div class="login-dialog__logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3v18M3 12h18"/>
+        </svg>
+      </div>
+      <div>
+        <h2 class="login-dialog__title">kproxyd</h2>
+        <p class="login-dialog__subtitle" id="txtLoginSub">Маршрутизация и проксирование</p>
+      </div>
+    </div>
+    <form id="loginForm" onsubmit="event.preventDefault(); submitLogin();">
+      <div id="loginErr" class="login-error" style="display:none;"></div>
+      <div style="margin-bottom:14px;">
+        <label for="loginUser" id="lblLoginUser" style="display:block; font-size:12px; font-weight:600; margin-bottom:5px; color:var(--text-gray);">Пользователь</label>
+        <input type="text" id="loginUser" autocomplete="username" required spellcheck="false" placeholder="admin" style="width:100%;">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label for="loginPass" id="lblLoginPass" style="display:block; font-size:12px; font-weight:600; margin-bottom:5px; color:var(--text-gray);">Пароль</label>
+        <input type="password" id="loginPass" autocomplete="current-password" required placeholder="••••••••" style="width:100%;">
+      </div>
+      <button type="submit" class="ndw-btn ndw-btn--primary" id="loginSubmitBtn" style="width:100%; justify-content:center; height:38px; font-size:14px;">
+        Войти
+      </button>
+    </form>
   </div>
 </dialog>
 
@@ -968,6 +1056,15 @@ const i18n = {
     confirmOkBtn: "Delete",
     delGroupTitle: "Delete Node",
     delOutletTitle: "Delete Connection",
+    loginTitle: "Sign in to kproxyd",
+    loginSub: "Routing and proxy management",
+    lblLoginUser: "Username",
+    lblLoginPass: "Password",
+    loginBtn: "Sign in",
+    invalidCredentials: "Wrong username or password",
+    logoutBtnTitle: "Sign out",
+    logoutConfirmTitle: "Sign out",
+    logoutConfirmMsg: "Are you sure you want to end your session?",
 
     // Resources (per-site selection & monitoring)
     navSites: "Resources",
@@ -1203,6 +1300,15 @@ const i18n = {
     confirmOkBtn: "Удалить",
     delGroupTitle: "Удаление узла",
     delOutletTitle: "Удаление подключения",
+    loginTitle: "Вход в kproxyd",
+    loginSub: "Маршрутизация и проксирование",
+    lblLoginUser: "Пользователь",
+    lblLoginPass: "Пароль",
+    loginBtn: "Войти",
+    invalidCredentials: "Неверный логин или пароль",
+    logoutBtnTitle: "Выйти из системы",
+    logoutConfirmTitle: "Выход из системы",
+    logoutConfirmMsg: "Вы действительно хотите завершить сеанс?",
 
     // Ресурсы (подбор подключения для сайтов и мониторинг)
     navSites: "Ресурсы",
@@ -1384,6 +1490,11 @@ function updateStaticLabels() {
   $("#txtProbe").textContent = t("probeBtn");
   $("#bProbe").title = t("probeBtn");
   $("#bSync").title = t("syncBtnTitle");
+  if($("#bLogout")) $("#bLogout").title = t("logoutBtnTitle");
+  if($("#txtLoginSub")) $("#txtLoginSub").textContent = t("loginSub");
+  if($("#lblLoginUser")) $("#lblLoginUser").textContent = t("lblLoginUser");
+  if($("#lblLoginPass")) $("#lblLoginPass").textContent = t("lblLoginPass");
+  if($("#loginSubmitBtn")) $("#loginSubmitBtn").textContent = t("loginBtn");
 
   $("#headerCaption").textContent = caption(tab);
 }
@@ -1399,6 +1510,42 @@ function caption(tab){
   return captions[tab] || tab;
 }
 
+function showLoginDialog(){
+  const dlg = $("#loginDlg");
+  if(!dlg) return;
+  if(!dlg.open){
+    $("#loginErr").style.display = "none";
+    $("#loginPass").value = "";
+    if(!$("#loginUser").value) $("#loginUser").value = "admin";
+    try { dlg.showModal(); } catch(e) {}
+    setTimeout(() => {
+      if($("#loginUser").value) $("#loginPass").focus();
+      else $("#loginUser").focus();
+    }, 50);
+  }
+}
+
+async function submitLogin(){
+  const user = $("#loginUser").value.trim();
+  const password = $("#loginPass").value;
+  const btn = $("#loginSubmitBtn");
+  const errBox = $("#loginErr");
+  errBox.style.display = "none";
+  btn.disabled = true;
+  try {
+    await api("POST", "/api/login", { user, password });
+    $("#loginDlg").close();
+    $("#loginPass").value = "";
+    await load();
+  } catch(e) {
+    errBox.textContent = t("invalidCredentials");
+    errBox.style.display = "block";
+    $("#loginPass").select();
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function api(method, path, body){
   const r = await fetch(path, {
     method,
@@ -1406,7 +1553,14 @@ async function api(method, path, body){
     body: body === undefined ? undefined : JSON.stringify(body)
   });
   const j = await r.json().catch(() => ({}));
-  if(!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+  if(!r.ok) {
+    if(r.status === 401 && path !== "/api/login") {
+      showLoginDialog();
+    }
+    const err = new Error(j.error || ("HTTP " + r.status));
+    err.status = r.status;
+    throw err;
+  }
   return j;
 }
 
@@ -1428,6 +1582,10 @@ async function load(){
     render();
     if(tab === "sites") await loadSites();
   } catch(e) {
+    if(e.status === 401) {
+      showLoginDialog();
+      return;
+    }
     $("#headerBadge").classList.add("err");
     $("#sum").textContent = t("noConnection") + e.message;
     $("#headerBadge").title = $("#sum").textContent;
@@ -2632,13 +2790,28 @@ $("#bSync").onclick = async () => {
   }
 };
 
+// Logout Button
+$("#bLogout").onclick = async () => {
+  if(await confirmModal(t("logoutConfirmMsg"), { title: t("logoutConfirmTitle"), okText: t("logoutBtnTitle"), isDanger: false })) {
+    try {
+      await api("POST", "/api/logout");
+    } catch(e) {}
+    S = null;
+    showLoginDialog();
+  }
+};
+
+$("#loginDlg").addEventListener("cancel", e => {
+  if(!S) e.preventDefault(); // Запретить закрытие по ESC до успешного входа
+});
+
 // Initialize Theme & Language
 applyTheme(currentTheme);
 changeLang(currentLang);
 
 load();
 setInterval(() => {
-  if(!document.hidden && !$("#dlg").open) load();
+  if(!document.hidden && !$("#dlg").open && !$("#loginDlg").open && !$("#confirmDlg").open) load();
 }, 3000);
 </script>
 </body>

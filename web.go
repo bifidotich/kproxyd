@@ -1,8 +1,11 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/subtle"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,11 +13,63 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
 //go:embed ui/index.html
 var uiFS embed.FS
+
+const (
+	sessionCookieName = "kproxyd_session"
+	sessionDuration   = 30 * 24 * time.Hour
+)
+
+func sessionKey(c *Config) []byte {
+	h := sha256.Sum256([]byte(c.Web.Password + ":" + c.Web.User))
+	return h[:]
+}
+
+func createSessionToken(c *Config) string {
+	exp := time.Now().Add(sessionDuration).Unix()
+	payload := fmt.Sprintf("%d:%s", exp, c.Web.User)
+	mac := hmac.New(sha256.New, sessionKey(c))
+	mac.Write([]byte(payload))
+	sig := hex.EncodeToString(mac.Sum(nil))
+	return fmt.Sprintf("%d.%s", exp, sig)
+}
+
+func validateSessionCookie(val string, c *Config) bool {
+	parts := strings.SplitN(val, ".", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	exp, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil || time.Now().Unix() > exp {
+		return false
+	}
+	payload := fmt.Sprintf("%d:%s", exp, c.Web.User)
+	mac := hmac.New(sha256.New, sessionKey(c))
+	mac.Write([]byte(payload))
+	expectedSig := hex.EncodeToString(mac.Sum(nil))
+	return subtle.ConstantTimeCompare([]byte(parts[1]), []byte(expectedSig)) == 1
+}
+
+func (a *App) checkAuth(r *http.Request, c *Config) bool {
+	if u, p, ok := r.BasicAuth(); ok {
+		if subtle.ConstantTimeCompare([]byte(u), []byte(c.Web.User)) == 1 &&
+			subtle.ConstantTimeCompare([]byte(p), []byte(c.Web.Password)) == 1 {
+			return true
+		}
+	}
+	cookie, err := r.Cookie(sessionCookieName)
+	if err == nil && cookie.Value != "" {
+		if validateSessionCookie(cookie.Value, c) {
+			return true
+		}
+	}
+	return false
+}
 
 func (a *App) routes() http.Handler {
 	mux := http.NewServeMux()
@@ -24,6 +79,11 @@ func (a *App) routes() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write(b)
 	})
+	mux.HandleFunc("GET /index.html", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("POST /api/login", a.hLogin)
+	mux.HandleFunc("POST /api/logout", a.hLogout)
 	mux.HandleFunc("GET /api/state", a.hState)
 	mux.HandleFunc("PUT /api/config", a.hPutConfig)
 	mux.HandleFunc("POST /api/groups/{name}/pin", a.hPin)
@@ -55,12 +115,14 @@ func (a *App) auth(next http.Handler) http.Handler {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
-		u, p, ok := r.BasicAuth()
-		if !ok ||
-			subtle.ConstantTimeCompare([]byte(u), []byte(c.Web.User)) != 1 ||
-			subtle.ConstantTimeCompare([]byte(p), []byte(c.Web.Password)) != 1 {
-			w.Header().Set("WWW-Authenticate", `Basic realm="kproxyd"`)
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+		// Главная страница и авторизация доступны без активной сессии
+		if r.URL.Path == "/" || r.URL.Path == "/index.html" || r.URL.Path == "/api/login" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if !a.checkAuth(r, c) {
+			// Не отправляем WWW-Authenticate: Basic, чтобы браузер не показывал системное модальное окно
+			writeErr(w, http.StatusUnauthorized, errors.New("unauthorized"))
 			return
 		}
 		// простая защита от CSRF: изменяющие запросы только с нашим заголовком
@@ -72,6 +134,45 @@ func (a *App) auth(next http.Handler) http.Handler {
 	})
 }
 
+func (a *App) hLogin(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		User     string `json:"user"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	c := a.store.Get()
+	if subtle.ConstantTimeCompare([]byte(in.User), []byte(c.Web.User)) != 1 ||
+		subtle.ConstantTimeCompare([]byte(in.Password), []byte(c.Web.Password)) != 1 {
+		writeErr(w, http.StatusUnauthorized, errors.New("неверный логин или пароль"))
+		return
+	}
+	token := createSessionToken(c)
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(sessionDuration.Seconds()),
+	})
+	writeJSON(w, map[string]any{"ok": true})
+}
+
+func (a *App) hLogout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
+	writeJSON(w, map[string]any{"ok": true})
+}
+
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
@@ -80,6 +181,7 @@ func writeJSON(w http.ResponseWriter, v any) {
 
 func writeErr(w http.ResponseWriter, code int, err error) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(map[string]any{"error": err.Error()})
 }
@@ -180,6 +282,17 @@ func (a *App) hPutConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	a.logf("info", "конфигурация обновлена через веб-интерфейс")
 	a.applyConfig(n)
+	if (n.Web.Password != old.Web.Password && old.Web.Password != "") || n.Web.User != old.Web.User {
+		token := createSessionToken(n)
+		http.SetCookie(w, &http.Cookie{
+			Name:     sessionCookieName,
+			Value:    token,
+			Path:     "/",
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   int(sessionDuration.Seconds()),
+		})
+	}
 	writeJSON(w, map[string]any{"ok": true})
 }
 
