@@ -2546,7 +2546,7 @@ function renderSettings(){
    Event Listeners & Initialization
    ========================================================================== */
 document.addEventListener("click", e => {
-  const b = e.target.closest("button[data-act], input[data-act]");
+  const b = e.target.closest("[data-act]");
   if(!b) return;
   const d = b.dataset;
   switch(d.act){
@@ -2566,6 +2566,16 @@ document.addEventListener("click", e => {
     case "editOutlet": editOutlet(d.o); break;
     case "delOutletDirect": deleteOutletDirect(d.o); break;
     case "addOutlet": addOutlet(d.i, d.d); break;
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " ") {
+    const b = document.activeElement && document.activeElement.closest("[data-act][role=button]");
+    if (b) {
+      e.preventDefault();
+      b.click();
+    }
   }
 });
 
