@@ -53,6 +53,10 @@
   
   --box-shadow-1: 0 5px 20px rgb(0 0 0 / 5%);
   --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  --scrollbar-thumb: #cfd3d8;
+  --scrollbar-thumb-hover: #a6acb3;
+  --scrollbar-track: transparent;
 }
 
 html.dark {
@@ -101,12 +105,34 @@ html.dark {
   
   --box-shadow-1: 0 5px 20px rgb(0 0 0 / 25%);
   --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #475569;
+  --scrollbar-track: transparent;
 }
 
 /* ==========================================================================
-   Base & Reset
+   Base & Reset + Custom Scrollbars
    ========================================================================== */
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -276,9 +302,90 @@ body {
 .headline b { color: var(--primary-text); font-weight: 700; }
 .headline.none b { color: var(--status-warning-text); }
 
+/* Connection Header & Title Spacing Fix */
+.connection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.connection-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+.connection-title-text {
+  min-width: 0;
+  flex: 1;
+}
+.connection-title-text h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Big In-Grid Add Node Card */
+.card--add-node {
+  border: 2px dashed var(--table-border);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 240px;
+  cursor: pointer;
+  transition: all 0.18s ease-in-out;
+  border-radius: 8px;
+  padding: 24px;
+}
+.card--add-node:hover {
+  border-color: var(--primary-color);
+  background-color: var(--status-special-background);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-1);
+}
+.card--add-node__icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--dashboard-background);
+  border: 1px solid var(--table-border);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  transition: all 0.18s ease;
+}
+.card--add-node:hover .card--add-node__icon-circle {
+  background: var(--primary-color);
+  color: #ffffff;
+  border-color: var(--primary-color);
+  transform: scale(1.1);
+}
+.card--add-node__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-text);
+  margin-bottom: 4px;
+}
+.card--add-node__desc {
+  font-size: 12px;
+  color: var(--text-gray);
+  max-width: 240px;
+  line-height: 16px;
+}
+
 /* Keenetic NDW Toggle Switch */
 .ndw-toggle {
   position: relative; display: inline-block; width: 36px; height: 20px; cursor: pointer;
+  flex-shrink: 0;
 }
 .ndw-toggle input { opacity: 0; width: 0; height: 0; }
 .ndw-toggle__track {
@@ -665,6 +772,8 @@ const i18n = {
     noLists: "no Keenetic domain lists directed to this node",
     socksNotRunning: "SOCKS5 listener failed: ",
     newGroupBtn: "+ New Node",
+    addNodeCardTitle: "New Node",
+    addNodeCardDesc: "Add another SOCKS5 node and bind connections",
     setupTitle: "Keenetic routing configuration guide",
     setupStep1: "Install the Keenetic system component <b>«Proxy client»</b>.",
     setupStep2: (h, p, u) => `Create a proxy connection: protocol <b>SOCKS5</b>, host <b>${h}</b>, port <b>${p}</b>${u ? ", with configured node credentials" : ""}.`,
@@ -813,6 +922,8 @@ const i18n = {
     noLists: "в Keenetic к этому узлу не привязан ни один список доменов",
     socksNotRunning: "Ошибка слушателя SOCKS5: ",
     newGroupBtn: "+ Новый узел",
+    addNodeCardTitle: "Новый узел",
+    addNodeCardDesc: "Добавить дополнительный SOCKS5-узел и подключить туннели",
     setupTitle: "Инструкция по настройке маршрутизации в Keenetic",
     setupStep1: "Установите компонент Keenetic <b>«Клиент прокси»</b>.",
     setupStep2: (h, p, u) => `Создайте прокси-подключение: протокол <b>SOCKS5</b>, адрес <b>${h}</b>, порт <b>${p}</b>${u ? ", с указанными логином и паролем узла" : ""}.`,
@@ -1178,10 +1289,15 @@ function renderGroups(){
     </article>`;
   }).join("");
 
-  el.innerHTML = `<div class="grid">${cards}</div>
-    <div class="foot" style="margin-top:20px;">
-      <button class="ndw-btn ndw-btn--primary" data-act="editGroup">${esc(t("newGroupBtn"))}</button>
-    </div>`;
+  const addCard = `<article class="card card--add-node" data-act="editGroup" role="button" tabindex="0" title="${esc(t("addNodeCardTitle"))}">
+    <div class="card--add-node__icon-circle">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </div>
+    <div class="card--add-node__title">${esc(t("addNodeCardTitle"))}</div>
+    <div class="card--add-node__desc">${esc(t("addNodeCardDesc"))}</div>
+  </article>`;
+
+  el.innerHTML = `<div class="grid">${cards}${addCard}</div>`;
 }
 
 const openSetup = new Set();
@@ -1449,20 +1565,20 @@ function renderOutlets(){
     const used = inGroups.length > 0;
 
     return `<article class="card">
-      <div class="card__header row">
-        <div class="card__title-row" style="display:flex; align-items:center; gap:12px;">
+      <div class="card__header row connection-header">
+        <div class="card__title-row connection-title-wrap">
           <!-- Keenetic Slider Toggle Switch -->
           <label class="ndw-toggle" title="${oc.enabled ? t("disabled") : t("available")}">
             <input type="checkbox" ${oc.enabled ? "checked" : ""} data-act="toggleOutlet" data-o="${esc(oc.name)}">
             <span class="ndw-toggle__track"></span>
             <span class="ndw-toggle__thumb"></span>
           </label>
-          <div>
+          <div class="connection-title-text" title="${esc(oc.name)}">
             <h2>${esc(oc.name)}</h2>
             <div class="meta">${esc(oc.iface)} · ${esc(o.dev || oc.dev || "?")}</div>
           </div>
         </div>
-        <div style="display:flex; gap:6px; align-items:center;">
+        <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
           <button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="editOutlet" data-o="${esc(oc.name)}">${esc(t("editBtn"))}</button>
           <button class="ndw-btn ndw-btn--danger ndw-btn--small" data-act="delOutletDirect" data-o="${esc(oc.name)}" ${used ? `disabled title="${esc(t("delDisabledTitle"))}"` : `title="${esc(t("delOutletBtn"))}"`}>
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
