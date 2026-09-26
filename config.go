@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -47,6 +49,30 @@ type GroupCfg struct {
 	AllDown      string   `json:"all_down"`       // reject | isp
 	KillOnSwitch bool     `json:"kill_on_switch"` // рвать SOCKS5-соединения при любом переключении
 	MaxConns     int      `json:"max_conns"`      // предел одновременных SOCKS5-соединений группы
+
+	// подбор подключения для каждого сайта (sites.go)
+	Sniff      bool       `json:"sniff"`       // узнавать домен по началу соединения и подбирать подключение
+	Failover   string     `json:"failover"`    // off | connect (не соединилось) | tls (сервер не ответил)
+	WaitMs     int        `json:"wait_ms"`     // сколько ждать ответа сервера через одно подключение
+	CacheMin   int        `json:"cache_min"`   // сколько помнить выбор и неудачи
+	Rules      []RuleCfg  `json:"rules"`       // домен -> подключение, важнее подбора
+	Watch      []WatchCfg `json:"watch"`       // ресурсы, которые kproxyd проверяет сам (watch.go)
+	WatchSec   int        `json:"watch_sec"`   // интервал этих проверок
+	WatchFails int        `json:"watch_fails"` // столько неудач проверки подряд -> через подключение не работает
+}
+
+// RuleCfg — ручное правило: домен и все его поддомены идут через это подключение, пока оно живо.
+type RuleCfg struct {
+	Domain string `json:"domain"`
+	Outlet string `json:"outlet"`
+}
+
+// WatchCfg — ресурс, который kproxyd сам проверяет через каждое подключение группы.
+type WatchCfg struct {
+	Target  string `json:"target"`             // домен, можно с портом и путём: example.com, example.com:8443/path
+	Deep    bool   `json:"deep,omitempty"`     // полный HTTPS-запрос вместо соединения и приветствия TLS
+	Expect  string `json:"expect,omitempty"`   // для deep: коды успеха, например 200-399 или 200,204
+	BodyNot string `json:"body_not,omitempty"` // для deep: неудача, если в начале ответа есть этот текст
 }
 
 // defaultMaxConns — предел соединений группы по умолчанию. Соединение в худшем случае
@@ -54,6 +80,9 @@ type GroupCfg struct {
 const (
 	defaultMaxConns = 256
 	maxMaxConns     = 10000
+
+	maxWatch = 10  // проверок на группу: каждая — соединение через каждое подключение
+	maxRules = 200 // правил на группу
 )
 
 type WebCfg struct {
@@ -150,7 +179,102 @@ func (c *Config) fillDefaults() {
 		if g.Members == nil {
 			g.Members = []string{}
 		}
+		if g.Failover == "" {
+			g.Failover = "tls"
+		}
+		if g.WaitMs == 0 {
+			g.WaitMs = 2500
+		}
+		if g.CacheMin == 0 {
+			g.CacheMin = 20
+		}
+		if g.WatchSec == 0 {
+			g.WatchSec = 120
+		}
+		if g.WatchFails == 0 {
+			g.WatchFails = 2
+		}
+		if g.Rules == nil {
+			g.Rules = []RuleCfg{}
+		}
+		for j := range g.Rules {
+			g.Rules[j].Domain = normDomain(strings.TrimPrefix(strings.TrimSpace(g.Rules[j].Domain), "*."))
+		}
+		if g.Watch == nil {
+			g.Watch = []WatchCfg{}
+		}
+		for j := range g.Watch {
+			w := &g.Watch[j]
+			w.Target = strings.TrimSpace(w.Target)
+			if w.Deep && strings.TrimSpace(w.Expect) == "" {
+				w.Expect = "200-399"
+			}
+		}
 	}
+}
+
+func normDomain(s string) string { return strings.TrimSuffix(strings.ToLower(s), ".") }
+
+// validHost — доменное имя из букв, цифр, дефисов и подчёркиваний, разделённых точками.
+func validHost(s string) bool {
+	if s == "" || len(s) > 253 {
+		return false
+	}
+	for _, l := range strings.Split(s, ".") {
+		if l == "" || len(l) > 63 || l[0] == '-' || l[len(l)-1] == '-' {
+			return false
+		}
+		for i := 0; i < len(l); i++ {
+			ch := l[i]
+			if !(ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9' || ch == '-' || ch == '_') {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// parseTarget разбирает цель проверки: домен[:порт][/путь].
+func parseTarget(t string) (host, port, path string, err error) {
+	if strings.Contains(t, "://") {
+		return "", "", "", fmt.Errorf("укажите домен без https://")
+	}
+	u, err := url.Parse("https://" + t)
+	if err != nil {
+		return "", "", "", err
+	}
+	host = normDomain(u.Hostname())
+	if !validHost(host) {
+		return "", "", "", fmt.Errorf("недопустимый домен %q", u.Hostname())
+	}
+	port = u.Port()
+	if port == "" {
+		port = "443"
+	}
+	if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
+		return "", "", "", fmt.Errorf("недопустимый порт %q", port)
+	}
+	return host, port, u.RequestURI(), nil
+}
+
+// parseCodes разбирает коды ответа: «200-399», «200,204», «200-299,301».
+func parseCodes(s string) ([][2]int, error) {
+	var res [][2]int
+	for _, part := range strings.Split(s, ",") {
+		part = strings.TrimSpace(part)
+		lo, hi, isRange := strings.Cut(part, "-")
+		a, err1 := strconv.Atoi(strings.TrimSpace(lo))
+		b := a
+		var err2 error
+		if isRange {
+			b, err2 = strconv.Atoi(strings.TrimSpace(hi))
+		}
+		if err1 != nil || err2 != nil || a < 100 || b > 599 || a > b {
+			return nil, fmt.Errorf("коды ответа: нужно вида 200-399 или 200,204")
+		}
+		res = append(res, [2]int{a, b})
+	}
+	return res, nil
 }
 
 // Названия выходов и групп: их задаёт пользователь, держим строгий набор символов.
@@ -253,6 +377,62 @@ func (c *Config) validate() error {
 		}
 		if len(g.User) > 255 || len(g.Password) > 255 { // предел протокола SOCKS5 (RFC 1929)
 			return fmt.Errorf("группа %q: логин и пароль SOCKS5 не длиннее 255 байт", g.Name)
+		}
+		if err := g.validateSites(seen); err != nil {
+			return fmt.Errorf("группа %q: %v", g.Name, err)
+		}
+	}
+	return nil
+}
+
+func (g *GroupCfg) validateSites(members map[string]bool) error {
+	switch g.Failover {
+	case "off", "connect", "tls":
+	default:
+		return fmt.Errorf("failover должен быть off, connect или tls")
+	}
+	if g.WaitMs < 300 || g.WaitMs > 15000 {
+		return fmt.Errorf("wait_ms должен быть от 300 до 15000")
+	}
+	if g.CacheMin < 1 || g.CacheMin > 1440 {
+		return fmt.Errorf("cache_min должен быть от 1 до 1440")
+	}
+	if g.WatchSec < 30 || g.WatchSec > 3600 {
+		return fmt.Errorf("watch_sec должен быть от 30 до 3600")
+	}
+	if g.WatchFails < 1 || g.WatchFails > 10 {
+		return fmt.Errorf("watch_fails должен быть от 1 до 10")
+	}
+	if len(g.Rules) > maxRules {
+		return fmt.Errorf("не больше %d правил", maxRules)
+	}
+	for _, r := range g.Rules {
+		if !validHost(r.Domain) {
+			return fmt.Errorf("правило: недопустимый домен %q", r.Domain)
+		}
+		if !members[r.Outlet] {
+			return fmt.Errorf("правило %s: подключение %q не входит в группу", r.Domain, r.Outlet)
+		}
+	}
+	if len(g.Watch) > maxWatch {
+		return fmt.Errorf("не больше %d проверяемых ресурсов", maxWatch)
+	}
+	targets := map[string]bool{}
+	for _, w := range g.Watch {
+		if _, _, _, err := parseTarget(w.Target); err != nil {
+			return fmt.Errorf("проверка %q: %v", w.Target, err)
+		}
+		if targets[w.Target] {
+			return fmt.Errorf("проверка %q указана дважды", w.Target)
+		}
+		targets[w.Target] = true
+		if w.Deep {
+			if _, err := parseCodes(w.Expect); err != nil {
+				return fmt.Errorf("проверка %q: %v", w.Target, err)
+			}
+		}
+		if len(w.BodyNot) > 200 {
+			return fmt.Errorf("проверка %q: текст заглушки не длиннее 200 символов", w.Target)
 		}
 	}
 	return nil

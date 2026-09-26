@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -26,6 +27,12 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /api/state", a.hState)
 	mux.HandleFunc("PUT /api/config", a.hPutConfig)
 	mux.HandleFunc("POST /api/groups/{name}/pin", a.hPin)
+	mux.HandleFunc("POST /api/groups/{name}/watch", func(w http.ResponseWriter, r *http.Request) {
+		a.watchSoon(r.PathValue("name"))
+		writeJSON(w, map[string]any{"ok": true})
+	})
+	mux.HandleFunc("GET /api/sites", a.hSites)
+	mux.HandleFunc("POST /api/sites/reset", a.hSiteReset)
 	mux.HandleFunc("POST /api/probe", func(w http.ResponseWriter, r *http.Request) {
 		select {
 		case a.probeNow <- struct{}{}:
@@ -111,7 +118,14 @@ func (a *App) hState(w http.ResponseWriter, r *http.Request) {
 	}
 	kerr := a.kErr
 	evs := append([]Event{}, a.events...)
+	healthy := a.healthyOutlets()
 	a.mu.RUnlock()
+
+	for i := range grs {
+		if g := c.group(grs[i].Name); g != nil && (g.Sniff || len(g.Watch) > 0) {
+			grs[i].Sites = a.sites.summary(siteView{g: g, active: grs[i].Active, healthy: healthy})
+		}
+	}
 
 	sort.Slice(lists, func(i, j int) bool { return lists[i]["name"].(string) < lists[j]["name"].(string) })
 	for i, j := 0, len(evs)-1; i < j; i, j = i+1, j-1 {
@@ -166,6 +180,55 @@ func (a *App) hPutConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	a.logf("info", "конфигурация обновлена через веб-интерфейс")
 	a.applyConfig(n)
+	writeJSON(w, map[string]any{"ok": true})
+}
+
+// healthyOutlets — рабочие подключения. Вызывать под a.mu.
+func (a *App) healthyOutlets() map[string]bool {
+	m := map[string]bool{}
+	for n, st := range a.outlets {
+		m[n] = st.Enabled && st.Healthy && st.Dev != ""
+	}
+	return m
+}
+
+// hSites — мониторинг ресурсов группы: ?group=имя&traffic=1&limit=100
+func (a *App) hSites(w http.ResponseWriter, r *http.Request) {
+	c := a.store.Get()
+	g := c.group(r.URL.Query().Get("group"))
+	if g == nil {
+		writeErr(w, 404, errors.New("нет такой группы"))
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit <= 0 || limit > siteMax {
+		limit = 100
+	}
+	a.mu.RLock()
+	healthy := a.healthyOutlets()
+	var active string
+	if gs := a.groups[g.Name]; gs != nil {
+		active = gs.Active
+	}
+	a.mu.RUnlock()
+	rows, total, st := a.sites.rows(siteView{g: g, active: active, healthy: healthy}, r.URL.Query().Get("traffic") != "0", limit)
+	if rows == nil {
+		rows = []SiteRow{}
+	}
+	writeJSON(w, map[string]any{"group": g.Name, "members": g.Members, "active": active,
+		"rows": rows, "total": total, "stats": st})
+}
+
+func (a *App) hSiteReset(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Group string `json:"group"`
+		Site  string `json:"site"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in); err != nil {
+		writeErr(w, 400, err)
+		return
+	}
+	a.sites.reset(in.Group, in.Site)
 	writeJSON(w, map[string]any{"ok": true})
 }
 

@@ -50,6 +50,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	go app.probeLoop(ctx)
 	go app.inspectLoop(ctx)
+	go app.watchLoop(ctx)
 
 	srv := &http.Server{
 		Addr:              c.Web.Listen,

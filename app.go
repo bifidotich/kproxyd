@@ -54,6 +54,8 @@ type GroupState struct {
 	Lists       []string `json:"lists"`
 	KeeneticOK  bool     `json:"keenetic_ok"`
 	KeeneticMsg string   `json:"keenetic_msg"`
+
+	Sites *SiteSummary `json:"sites,omitempty"` // блок «Ресурсы» в карточке группы
 }
 
 type Event struct {
@@ -77,7 +79,9 @@ type App struct {
 
 	applyMu   sync.Mutex // изменения конфига применяются строго по одному
 	tracker   *ConnTracker
+	sites     *SiteCache
 	probeNow  chan struct{}
+	watchNow  chan string   // проверить ресурсы группы сейчас
 	inspectCh chan struct{} // перечитать конфигурацию Keenetic
 }
 
@@ -90,7 +94,9 @@ func newApp(store *Store) *App {
 		groups:    map[string]*GroupState{},
 		socks:     map[string]*SocksServer{},
 		tracker:   newConnTracker(),
+		sites:     newSiteCache(),
 		probeNow:  make(chan struct{}, 1),
+		watchNow:  make(chan string, 8),
 		inspectCh: make(chan struct{}, 1),
 	}
 	a.rebuild(c)
@@ -138,6 +144,15 @@ func (a *App) rebuild(c *Config) {
 	}
 	a.groups = nGr
 	a.mu.Unlock()
+
+	members := map[string]map[string]bool{}
+	for _, g := range c.Groups {
+		members[g.Name] = map[string]bool{}
+		for _, m := range g.Members {
+			members[g.Name][m] = true
+		}
+	}
+	a.sites.retain(members)
 
 	a.reconcileSocks(c)
 	a.evaluate()
@@ -361,6 +376,7 @@ func (a *App) probeOne(c *Config, o OutletCfg, kstate map[string]KIface) {
 		if healthy {
 			a.logf("info", "выход %s доступен", name)
 		} else {
+			a.sites.dropOutlet(name)
 			a.logf("warn", "выход %s недоступен: %s", name, lerr)
 		}
 	}

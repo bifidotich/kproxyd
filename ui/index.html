@@ -598,6 +598,80 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
 .dot.down { background: var(--indicator-offline); }
 .dot.off { background: var(--stroke); }
 
+/* Sites: per-site outlet selection & resource monitoring */
+.ndw-chip--special { background: var(--status-special-background); border-color: var(--status-special-border); color: var(--status-special-text); }
+.section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--primary-color); margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.link-btn { background: none; border: 0; padding: 0; cursor: pointer; text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12px; color: var(--primary-color); }
+.res-mini { border-top: 1px solid var(--table-border); padding-top: 4px; }
+.res-mini__row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 5px 0; font-size: 13px; }
+.res-mini__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sq { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 3px; background: var(--stroke); }
+.sq.ok { background: var(--indicator-online); }
+.sq.fail { background: var(--indicator-offline); }
+.sq.sel { box-shadow: 0 0 0 2px var(--card-background), 0 0 0 3.5px var(--primary-color); }
+.res-mini__st { font-size: 12px; color: var(--text-gray); min-width: 100px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.res-mini__st.bad { color: var(--status-warning-text); }
+.res-mini__st.alt { color: var(--status-special-text); }
+.res-mini__foot { font-size: 12px; color: var(--text-gray); margin-top: 4px; }
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.seg { display: inline-flex; border: 1px solid var(--table-border); border-radius: 4px; overflow: hidden; background: var(--card-background); flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--primary-text); }
+.seg button.on { background: var(--primary-color); color: #fff; }
+.toolbar input[type=search] { width: 220px; }
+.toolbar .chk { margin: 0 0 0 auto; font-size: 13px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.stat { background: var(--card-background); border: 1px solid var(--table-border); border-radius: 8px; padding: 12px 14px; }
+.stat__v { font-size: 20px; font-weight: 700; line-height: 26px; font-variant-numeric: tabular-nums; }
+.stat__v small { font-size: 13px; color: var(--text-gray); font-weight: 400; }
+.stat__l { font-size: 12px; color: var(--text-gray); }
+.table-wrap { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+.res-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
+.res-table th { text-align: left; font-size: 12px; font-weight: 500; color: var(--text-gray); padding: 8px; border-bottom: 1px solid var(--table-border); white-space: nowrap; }
+.res-table td { padding: 8px; border-bottom: 1px solid var(--table-border); vertical-align: middle; }
+.res-table tr.grp td { background: var(--dashboard-background); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-gray); padding: 6px 8px; }
+.res-table .dom { font-weight: 500; overflow-wrap: anywhere; }
+.res-table .sub { font-size: 11px; color: var(--text-gray); display: block; }
+.res-table .ndw-chip { white-space: nowrap; }
+.cell { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font-size: 12px; white-space: nowrap; border: 1px solid transparent; font-variant-numeric: tabular-nums; }
+.cell.ok { color: var(--status-success-text); background: var(--status-success-background); border-color: var(--status-success-border); }
+.cell.fail { color: var(--status-warning-text); background: var(--status-warning-background); border-color: var(--status-warning-border); }
+.cell.none { color: var(--help-text); }
+.cell.sel { box-shadow: 0 0 0 1.5px var(--primary-color); }
+.src { font-size: 10px; font-weight: 700; opacity: .7; }
+.acts { white-space: nowrap; text-align: right; }
+.icon-btn { background: transparent; border: 1px solid var(--table-border); color: var(--primary-color); border-radius: 4px; width: 28px; height: 28px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin-left: 4px; padding: 0; }
+.icon-btn:hover { background: var(--menu-hover); }
+.icon-btn svg { width: 14px; height: 14px; pointer-events: none; }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--text-gray); margin-top: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dlg-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--table-border); margin: -4px 0 12px; overflow-x: auto; scrollbar-width: none; }
+.dlg-tabs::-webkit-scrollbar { display: none; }
+.dlg-tabs button { border: 0; background: transparent; padding: 8px 12px; font-size: 13px; cursor: pointer; color: var(--text-gray); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.dlg-tabs button.on { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+.pane[hidden] { display: none; }
+.toggle-row { display: flex; gap: 12px; align-items: flex-start; padding: 6px 0; }
+.toggle-row b { font-weight: 600; display: block; }
+.toggle-row .hint { margin-top: 2px; }
+.list { border: 1px solid var(--table-border); border-radius: 4px; }
+.list:empty { display: none; }
+.list__row { display: grid; gap: 8px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--table-border); }
+.list__row:last-child { border-bottom: 0; }
+.list__row.watch { grid-template-columns: minmax(0, 1fr) 130px 28px; }
+.list__row.rule { grid-template-columns: minmax(0, 1fr) 20px 150px 28px; }
+.list__row .arrow { color: var(--text-gray); text-align: center; }
+.list__row input, .list__row select { padding: 5px 8px; }
+.deep { grid-column: 1 / -1; display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; padding: 8px 10px; background: var(--dashboard-background); border-radius: 4px; }
+.deep label { margin: 0 0 2px; }
+.add-link { margin-top: 8px; }
+@media (max-width: 768px) {
+  .stats { grid-template-columns: 1fr 1fr; }
+  .toolbar .chk { margin-left: 0; }
+  .toolbar input[type=search] { width: 100%; }
+  .list__row.rule { grid-template-columns: minmax(0, 1fr) 120px 28px; }
+  .list__row.rule .arrow { display: none; }
+  .dlg-tabs button { padding: 8px 9px; }
+}
+
 @media (max-width: 768px) {
   .sidebar { position: fixed; left: 0; top: 64px; bottom: 0; transform: translateX(-100%); transition: transform 0.2s ease; }
   .sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 16px rgba(0,0,0,0.2); }
@@ -672,6 +746,13 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
           <span class="menu-item__text" id="txtTabGroups">Nodes</span>
         </button>
 
+        <button class="menu-item" data-tab="sites">
+          <span class="menu-item__icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-2.9a15.7 15.7 0 0 0-1.4-3.6A8 8 0 0 1 18.9 8zM12 4c.8 1.2 1.5 2.5 1.9 4h-3.8c.4-1.5 1.1-2.8 1.9-4zM4.3 14a8.2 8.2 0 0 1 0-4h3.4a16.5 16.5 0 0 0 0 4H4.3zm.8 2h2.9c.3 1.3.8 2.5 1.4 3.6A8 8 0 0 1 5.1 16zM8 8H5.1a8 8 0 0 1 4.3-3.6C8.8 5.5 8.3 6.7 8 8zm4 12c-.8-1.2-1.5-2.5-1.9-4h3.8c-.4 1.5-1.1 2.8-1.9 4zm2.3-6H9.7a14.7 14.7 0 0 1 0-4h4.6a14.7 14.7 0 0 1 0 4zm.3 5.6c.6-1.1 1.1-2.3 1.4-3.6h2.9a8 8 0 0 1-4.3 3.6zm1.8-5.6a16.5 16.5 0 0 0 0-4h3.4a8.2 8.2 0 0 1 0 4h-3.4z"/></svg>
+          </span>
+          <span class="menu-item__text" id="txtTabSites">Resources</span>
+        </button>
+
         <button class="menu-item" data-tab="outlets">
           <span class="menu-item__icon">
             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
@@ -700,6 +781,10 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
     <!-- Main Content Workspace -->
     <main class="main-content">
       <section id="tab-groups"></section>
+      <section id="tab-sites" hidden>
+        <div class="toolbar" id="sitesToolbar"></div>
+        <div id="sitesBody"></div>
+      </section>
       <section id="tab-outlets" hidden></section>
       <section id="tab-log" hidden></section>
       <section id="tab-settings" hidden></section>
@@ -882,7 +967,92 @@ const i18n = {
     confirmTitle: "Confirmation",
     confirmOkBtn: "Delete",
     delGroupTitle: "Delete Node",
-    delOutletTitle: "Delete Connection"
+    delOutletTitle: "Delete Connection",
+
+    // Resources (per-site selection & monitoring)
+    navSites: "Resources",
+    sitesSection: "Resources",
+    allResources: "All resources →",
+    miniLegend: "Squares — node connections in order, outlined — the one in use now.",
+    miniFoot: (n, alt, down) => n ? `From traffic: ${n} sites` + (alt ? ` · ${alt} via another connection` : "") + (down ? ` · ${down} unreachable` : "") + (!alt && !down ? " · all working" : "") : "No sites from traffic yet",
+    stOk: "working",
+    stAlt: v => `via ${v}`,
+    stDown: "unreachable everywhere",
+    stRule: v => `rule → ${v}`,
+    stNone: "no data",
+    cellNone: "no data",
+    cellOff: "connection down",
+    errCodes: { timeout: "no answer", reset: "reset", refused: "refused", closed: "closed", unreach: "no route", dns: "DNS error", slow: "slow", early: "cut off", alert: "TLS alert", proto: "not TLS", stub: "block page", forbidden: "forbidden", error: "error" },
+    srcT: "from traffic",
+    srcP: "kproxyd check",
+    srcLetterT: "T",
+    srcLetterP: "C",
+    okFail: (ok, fail) => `successes ${ok}, failures ${fail}`,
+    badNote: "tried last for now",
+    watchedGroup: "Watched",
+    trafficGroup: n => `From traffic · ${n}`,
+    lightCheck: "light check",
+    deepCheck: "deep check",
+    connsSub: (n, a) => `${n} connections · ${a}`,
+    ipSub: "domain unknown (IP address)",
+    colResource: "Resource",
+    colStatus: "Status",
+    checkNowBtn: "Check now",
+    configureBtn: "Configure",
+    checkStarted: "Check started",
+    searchPh: "Search domain",
+    showTraffic: "Show domains from traffic",
+    statRate: "new connections per second",
+    statHits: "cache hits",
+    statHedges: "backup attempts per hour",
+    statEntries: "cache entries",
+    sitesTitle: g => `${g} · resources`,
+    sniffOffHint: "Per-site selection is off for this node — only checks are shown. Turn it on in Configure → Selection.",
+    noSitesYet: "No data yet. Turn on per-site selection or add resources to check in the node settings.",
+    showMore: n => `${n} more · show`,
+    legendSel: "outline — the site goes through this connection now",
+    legendP: "kproxyd check",
+    legendT: "real traffic",
+    legendHover: "Hover a cell for details",
+    actWatch: "Watch",
+    actRule: "Pin with a rule",
+    actReset: "Reset selection",
+    watchAdded: s => `${s} added to checks`,
+    ruleAdded: (s, o) => `Rule: ${s} → ${o}`,
+    siteResetToast: "Selection reset",
+    watchLimit: "Up to 10 resources per node",
+    noGroupsSites: "Create a node first.",
+    tabMain: "General",
+    tabPick: "Selection",
+    tabWatch: "Checks",
+    tabRules: "Rules",
+    lblSniff: "Pick a connection for each site",
+    sniffHint: "kproxyd reads the domain from the start of the connection (HTTPS and HTTP, ports 443 and 80) and remembers which connection opens the site.",
+    lblFailover: "When to move to the next connection",
+    optFailOff: "Never — always the node's active connection",
+    optFailConnect: "Could not connect",
+    optFailTls: "Server did not answer or reset the connection (recommended)",
+    lblWait: "Wait for the server, ms",
+    waitHint: "A backup attempt starts earlier — when the answer takes 3× longer than usual for the site.",
+    lblCache: "Remember the choice, min",
+    cacheHint: "Failures are remembered as long.",
+    watchIntro: "kproxyd checks these resources through every connection of the node, even when nobody uses them. Up to 10.",
+    targetPh: "example.com or example.com/path",
+    optLight: "Light",
+    optDeep: "Deep",
+    lblExpect: "Success codes",
+    lblBodyNot: "Fail if the response contains",
+    addWatchBtn: "+ Add resource",
+    lblWatchInt: "Check interval",
+    lblWatchFails: "Failures in a row to mark as not working",
+    watchTypesHint: "<b>Light</b> — connection and TLS hello, no encryption on the router: catches blocking by address and domain. <b>Deep</b> — full HTTPS request: catches block pages and 403, but is heavier for the router CPU.",
+    rulesIntro: "A rule beats automatic selection. A domain includes all its subdomains.",
+    rulesNeedSniff: "Rules work when per-site selection is on (Selection tab).",
+    addRuleBtn: "+ Add rule",
+    rulesFallbackHint: "If the rule's connection is down, the site goes through normal selection.",
+    removeBtn: "Remove",
+    sec: "s",
+    min: "min"
   },
 
   ru: {
@@ -1032,7 +1202,92 @@ const i18n = {
     confirmTitle: "Подтверждение действия",
     confirmOkBtn: "Удалить",
     delGroupTitle: "Удаление узла",
-    delOutletTitle: "Удаление подключения"
+    delOutletTitle: "Удаление подключения",
+
+    // Ресурсы (подбор подключения для сайтов и мониторинг)
+    navSites: "Ресурсы",
+    sitesSection: "Ресурсы",
+    allResources: "Все ресурсы →",
+    miniLegend: "Квадраты — подключения узла по порядку, в рамке — выбранное сейчас.",
+    miniFoot: (n, alt, down) => n ? `Из трафика: ${n} сайтов` + (alt ? ` · ${alt} через другое подключение` : "") + (down ? ` · ${down} недоступно` : "") + (!alt && !down ? " · всё работает" : "") : "Сайтов из трафика пока нет",
+    stOk: "работает",
+    stAlt: v => `через ${v}`,
+    stDown: "недоступен везде",
+    stRule: v => `правило → ${v}`,
+    stNone: "нет данных",
+    cellNone: "нет данных",
+    cellOff: "подключение недоступно",
+    errCodes: { timeout: "тишина", reset: "сброс", refused: "отказ", closed: "закрыто", unreach: "нет маршрута", dns: "ошибка DNS", slow: "медленно", early: "обрыв", alert: "TLS-отказ", proto: "не TLS", stub: "заглушка", forbidden: "запрещено", error: "ошибка" },
+    srcT: "из трафика",
+    srcP: "проверка kproxyd",
+    srcLetterT: "Т",
+    srcLetterP: "П",
+    okFail: (ok, fail) => `успехов ${ok}, неудач ${fail}`,
+    badNote: "пока пробуется последним",
+    watchedGroup: "Отслеживаемые",
+    trafficGroup: n => `Из трафика · ${n}`,
+    lightCheck: "лёгкая проверка",
+    deepCheck: "глубокая проверка",
+    connsSub: (n, a) => `соединений: ${n} · ${a}`,
+    ipSub: "домен неизвестен (IP-адрес)",
+    colResource: "Ресурс",
+    colStatus: "Статус",
+    checkNowBtn: "Проверить сейчас",
+    configureBtn: "Настроить",
+    checkStarted: "Проверка запущена",
+    searchPh: "Поиск по домену",
+    showTraffic: "Показывать домены из трафика",
+    statRate: "новых соединений в секунду",
+    statHits: "попаданий в кэш",
+    statHedges: "запасных попыток за час",
+    statEntries: "записей в кэше",
+    sitesTitle: g => `${g} · ресурсы`,
+    sniffOffHint: "Подбор для сайтов в этом узле выключен — видны только проверки. Включить: Настроить → Подбор.",
+    noSitesYet: "Данных пока нет. Включите подбор для сайтов или добавьте проверяемые ресурсы в настройках узла.",
+    showMore: n => `ещё ${n} · показать`,
+    legendSel: "рамка — через это подключение сайт идёт сейчас",
+    legendP: "проверка kproxyd",
+    legendT: "реальный трафик",
+    legendHover: "Наведите на ячейку — подробности и время",
+    actWatch: "Отслеживать",
+    actRule: "Закрепить правилом",
+    actReset: "Сбросить выбор",
+    watchAdded: s => `${s} добавлен в проверки`,
+    ruleAdded: (s, o) => `Правило: ${s} → ${o}`,
+    siteResetToast: "Выбор сброшен",
+    watchLimit: "Не больше 10 ресурсов на узел",
+    noGroupsSites: "Сначала создайте узел.",
+    tabMain: "Основное",
+    tabPick: "Подбор",
+    tabWatch: "Проверки",
+    tabRules: "Правила",
+    lblSniff: "Подбирать подключение для каждого сайта",
+    sniffHint: "kproxyd определяет домен по началу соединения (HTTPS и HTTP, порты 443 и 80) и запоминает, через какое подключение сайт открывается.",
+    lblFailover: "Когда переходить к следующему подключению",
+    optFailOff: "Никогда — всегда через активное подключение узла",
+    optFailConnect: "Не удалось соединиться",
+    optFailTls: "Сервер не ответил или сбросил соединение (рекомендуется)",
+    lblWait: "Ждать ответа сервера, мс",
+    waitHint: "Запасная попытка стартует раньше — при задержке втрое больше обычной для сайта.",
+    lblCache: "Помнить выбор, мин",
+    cacheHint: "Неудачи помнятся столько же.",
+    watchIntro: "kproxyd сам проверяет эти ресурсы через каждое подключение узла, даже когда ими никто не пользуется. Не больше 10.",
+    targetPh: "example.com или example.com/путь",
+    optLight: "Лёгкая",
+    optDeep: "Глубокая",
+    lblExpect: "Коды успеха",
+    lblBodyNot: "Ошибка, если в ответе есть",
+    addWatchBtn: "+ Добавить ресурс",
+    lblWatchInt: "Интервал проверки",
+    lblWatchFails: "Неудач подряд до «не работает»",
+    watchTypesHint: "<b>Лёгкая</b> — соединение и приветствие TLS, без шифрования на роутере: ловит блокировки по адресу и домену. <b>Глубокая</b> — полный HTTPS-запрос: ловит заглушки и 403, но тяжелее для процессора роутера.",
+    rulesIntro: "Правило важнее автоматического подбора. Домен включает все свои поддомены.",
+    rulesNeedSniff: "Правила работают при включённом подборе (вкладка «Подбор»).",
+    addRuleBtn: "+ Добавить правило",
+    rulesFallbackHint: "Если подключение правила упало, сайт идёт по обычному подбору.",
+    removeBtn: "Удалить",
+    sec: "с",
+    min: "мин"
   }
 };
 
@@ -1121,6 +1376,7 @@ function changeLang(l) {
 function updateStaticLabels() {
   $("#txtNavRouting").textContent = t("navRouting");
   $("#txtTabGroups").textContent = t("navGroups");
+  $("#txtTabSites").textContent = t("navSites");
   $("#txtTabOutlets").textContent = t("navOutlets");
   $("#txtNavSystem").textContent = t("navSystem");
   $("#txtTabLog").textContent = t("navLog");
@@ -1129,13 +1385,18 @@ function updateStaticLabels() {
   $("#bProbe").title = t("probeBtn");
   $("#bSync").title = t("syncBtnTitle");
 
+  $("#headerCaption").textContent = caption(tab);
+}
+
+function caption(tab){
   const captions = {
     groups: t("navGroups"),
+    sites: t("navSites"),
     outlets: t("navOutlets"),
     log: t("navLog"),
     settings: t("navSettings")
   };
-  $("#headerCaption").textContent = captions[tab] || tab;
+  return captions[tab] || tab;
 }
 
 async function api(method, path, body){
@@ -1165,6 +1426,7 @@ async function load(){
   try {
     S = await api("GET", "/api/state");
     render();
+    if(tab === "sites") await loadSites();
   } catch(e) {
     $("#headerBadge").classList.add("err");
     $("#sum").textContent = t("noConnection") + e.message;
@@ -1282,6 +1544,7 @@ function renderGroups(){
       <ol class="route-track">${stops}</ol>
       <div class="meta" style="margin-top:6px;">${esc(t("socksInfo")(g.listen, pol, st.conns || 0, g.max_conns || 256))}</div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">${lists}</div>
+      ${st.sites ? siteMini(g, st.sites) : ""}
       ${st.listen_err ? `<div class="err" style="margin-top:6px;">${esc(t("socksNotRunning"))}${esc(st.listen_err)}</div>` : ""}
       ${st.keenetic_msg ? `<div class="${st.keenetic_ok ? "meta" : "err"}" style="margin-top:6px">Keenetic: ${esc(st.keenetic_msg)}</div>` : ""}
       ${st.keenetic_ok ? "" : setupHelp(g)}
@@ -1380,19 +1643,61 @@ async function pin(group, outlet){
   }
 }
 
-function editGroup(name){
+function editGroup(name, paneName){
   const cfg = clone(S.config);
   const isNew = !name;
   const usedPorts = cfg.groups.map(g => g.listen).filter(Boolean);
   let port = 1081; while(usedPorts.includes("127.0.0.1:" + port)) port++;
   const g = isNew ? {
     name: "", policy: "fallback", members: cfg.outlets.map(o => o.name), tolerance_ms: 150,
-    listen: "127.0.0.1:" + port, all_down: "reject", kill_on_switch: false, max_conns: 256, user: "", password: ""
+    listen: "127.0.0.1:" + port, all_down: "reject", kill_on_switch: false, max_conns: 256, user: "", password: "",
+    sniff: false, failover: "tls", wait_ms: 2500, cache_min: 20, watch: [], watch_sec: 120, watch_fails: 2, rules: []
   } : clone(cfg.groups.find(x => x.name === name));
 
   let order = [...g.members, ...cfg.outlets.map(o => o.name).filter(n => !g.members.includes(n))];
   let checked = new Set(g.members);
+  const watch = clone(g.watch || []), rules = clone(g.rules || []);
+  const curMembers = () => order.filter(x => checked.has(x));
   const f = $("#dlgForm");
+
+  const drawWatch = () => {
+    $("#gWatch").innerHTML = watch.map((w, i) => `<div class="list__row watch">
+      <input data-w="${i}" data-f="target" value="${esc(w.target)}" placeholder="${esc(t("targetPh"))}" required aria-label="${esc(t("colResource"))}">
+      <select data-w="${i}" data-f="deep" aria-label="${esc(t("tabWatch"))}">
+        <option value="0" ${w.deep ? "" : "selected"}>${esc(t("optLight"))}</option>
+        <option value="1" ${w.deep ? "selected" : ""}>${esc(t("optDeep"))}</option>
+      </select>
+      <button type="button" class="icon-btn" data-wdel="${i}" title="${esc(t("removeBtn"))}" aria-label="${esc(t("removeBtn"))}">✕</button>
+      ${w.deep ? `<div class="deep">
+        <div><label>${esc(t("lblExpect"))}</label><input data-w="${i}" data-f="expect" value="${esc(w.expect || "200-399")}" required pattern="\\s*\\d{3}(\\s*-\\s*\\d{3})?(\\s*,\\s*\\d{3}(\\s*-\\s*\\d{3})?)*\\s*"></div>
+        <div><label>${esc(t("lblBodyNot"))}</label><input data-w="${i}" data-f="body_not" value="${esc(w.body_not || "")}" maxlength="200"></div>
+      </div>` : ""}
+    </div>`).join("");
+    $("#gWatchAdd").disabled = watch.length >= 10;
+  };
+
+  const drawRules = () => {
+    const mem = curMembers();
+    $("#gRules").innerHTML = rules.map((r, i) => {
+      if(!r.outlet) r.outlet = mem[0] || "";
+      const opts = [...new Set([...mem, r.outlet].filter(Boolean))];
+      return `<div class="list__row rule">
+        <input data-r="${i}" data-f="domain" value="${esc(r.domain)}" placeholder="example.com" required aria-label="domain">
+        <span class="arrow">→</span>
+        <select data-r="${i}" data-f="outlet" aria-label="${esc(t("navOutlets"))}">${opts.map(m => `<option value="${esc(m)}" ${m === r.outlet ? "selected" : ""}>${esc(m)}</option>`).join("")}</select>
+        <button type="button" class="icon-btn" data-rdel="${i}" title="${esc(t("removeBtn"))}" aria-label="${esc(t("removeBtn"))}">✕</button>
+      </div>`;
+    }).join("");
+  };
+
+  const setPane = p => {
+    f.querySelectorAll("#gTabs button").forEach(b => b.classList.toggle("on", b.dataset.pane === p));
+    f.querySelectorAll(".pane").forEach(x => x.hidden = x.id !== "gp-" + p);
+  };
+
+  const intervals = [30, 60, 120, 300, 600, 1800, 3600];
+  if(!intervals.includes(g.watch_sec)) intervals.push(g.watch_sec);
+  const fmtSec = s => s < 60 ? `${s} ${t("sec")}` : `${Math.round(s / 60)} ${t("min")}`;
 
   const drawMembers = () => {
     $("#gMembers").innerHTML = order.map((n, i) => `<li>
@@ -1413,6 +1718,63 @@ function editGroup(name){
       </button>
     </div>
 
+    <div class="dlg-tabs" id="gTabs">
+      <button type="button" data-pane="main">${esc(t("tabMain"))}</button>
+      <button type="button" data-pane="pick">${esc(t("tabPick"))}</button>
+      <button type="button" data-pane="watch">${esc(t("tabWatch"))}</button>
+      <button type="button" data-pane="rules">${esc(t("tabRules"))}</button>
+    </div>
+
+    <div class="pane" id="gp-pick" hidden>
+      <div class="toggle-row">
+        <label class="ndw-toggle"><input type="checkbox" id="gSniff" ${g.sniff ? "checked" : ""}><span class="ndw-toggle__track"></span><span class="ndw-toggle__thumb"></span></label>
+        <div><label for="gSniff" style="margin:0; cursor:pointer;"><b style="color:var(--primary-text);">${esc(t("lblSniff"))}</b></label><p class="hint">${esc(t("sniffHint"))}</p></div>
+      </div>
+      <label for="gFail">${esc(t("lblFailover"))}</label>
+      <select id="gFail">
+        <option value="off" ${g.failover === "off" ? "selected" : ""}>${esc(t("optFailOff"))}</option>
+        <option value="connect" ${g.failover === "connect" ? "selected" : ""}>${esc(t("optFailConnect"))}</option>
+        <option value="tls" ${g.failover === "tls" ? "selected" : ""}>${esc(t("optFailTls"))}</option>
+      </select>
+      <div class="two">
+        <div>
+          <label for="gWait">${esc(t("lblWait"))}</label>
+          <input id="gWait" type="number" min="300" max="15000" required value="${g.wait_ms}">
+          <p class="hint">${esc(t("waitHint"))}</p>
+        </div>
+        <div>
+          <label for="gCache">${esc(t("lblCache"))}</label>
+          <input id="gCache" type="number" min="1" max="1440" required value="${g.cache_min}">
+          <p class="hint">${esc(t("cacheHint"))}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane" id="gp-watch" hidden>
+      <p class="hint" style="margin:0 0 10px">${esc(t("watchIntro"))}</p>
+      <div class="list" id="gWatch"></div>
+      <button type="button" class="ndw-btn ndw-btn--outline ndw-btn--small add-link" id="gWatchAdd">${esc(t("addWatchBtn"))}</button>
+      <div class="two" style="margin-top:6px">
+        <div>
+          <label for="gWatchSec">${esc(t("lblWatchInt"))}</label>
+          <select id="gWatchSec">${intervals.sort((a, b) => a - b).map(s => `<option value="${s}" ${s === g.watch_sec ? "selected" : ""}>${fmtSec(s)}</option>`).join("")}</select>
+        </div>
+        <div>
+          <label for="gWatchFails">${esc(t("lblWatchFails"))}</label>
+          <input id="gWatchFails" type="number" min="1" max="10" required value="${g.watch_fails}">
+        </div>
+      </div>
+      <p class="hint">${t("watchTypesHint")}</p>
+    </div>
+
+    <div class="pane" id="gp-rules" hidden>
+      <p class="hint" style="margin:0 0 10px">${esc(t("rulesIntro"))} ${esc(t("rulesNeedSniff"))}</p>
+      <div class="list" id="gRules"></div>
+      <button type="button" class="ndw-btn ndw-btn--outline ndw-btn--small add-link" id="gRuleAdd">${esc(t("addRuleBtn"))}</button>
+      <p class="hint">${esc(t("rulesFallbackHint"))}</p>
+    </div>
+
+    <div class="pane" id="gp-main">
     <label for="gName">${esc(t("lblName"))}</label>
     <input id="gName" value="${esc(g.name)}" required pattern="[A-Za-z0-9_.\\-]+" title="${esc(t("nameTitle"))}">
     
@@ -1461,6 +1823,7 @@ function editGroup(name){
       <label for="gKill" style="margin:0; color:var(--primary-text);">${esc(t("lblKill"))}</label>
     </div>
     <p class="hint">${esc(t("killHint"))}</p>
+    </div>
 
     <div class="foot">
       ${isNew ? "" : `<button type="button" class="ndw-btn ndw-btn--danger left" id="gDel">${esc(t("delGroupBtn"))}</button>`}
@@ -1469,12 +1832,55 @@ function editGroup(name){
     </div>`;
 
   drawMembers();
+  drawWatch();
+  drawRules();
   syncPolicy();
+  setPane(paneName || "main");
+  $("#gTabs").onclick = e => { if(e.target.dataset.pane) setPane(e.target.dataset.pane); };
   $("#gPolicy").onchange = syncPolicy;
+
+  $("#gWatch").oninput = e => {
+    const i = e.target.dataset.w, k = e.target.dataset.f;
+    if(i === undefined) return;
+    if(k === "deep"){
+      watch[i].deep = e.target.value === "1";
+      if(watch[i].deep && !watch[i].expect) watch[i].expect = "200-399";
+      drawWatch();
+    } else {
+      watch[i][k] = e.target.value;
+    }
+  };
+  $("#gWatch").onclick = e => {
+    if(e.target.dataset.wdel === undefined) return;
+    watch.splice(+e.target.dataset.wdel, 1);
+    drawWatch();
+  };
+  $("#gWatchAdd").onclick = () => {
+    if(watch.length >= 10) return;
+    watch.push({ target: "" });
+    drawWatch();
+    $("#gWatch").querySelector(`[data-w="${watch.length - 1}"][data-f="target"]`).focus();
+  };
+  $("#gRules").oninput = e => {
+    const i = e.target.dataset.r;
+    if(i !== undefined) rules[i][e.target.dataset.f] = e.target.value;
+  };
+  $("#gRules").onclick = e => {
+    if(e.target.dataset.rdel === undefined) return;
+    rules.splice(+e.target.dataset.rdel, 1);
+    drawRules();
+  };
+  $("#gRuleAdd").onclick = () => {
+    rules.push({ domain: "", outlet: curMembers()[0] || "" });
+    drawRules();
+    $("#gRules").querySelector(`[data-r="${rules.length - 1}"][data-f="domain"]`).focus();
+  };
+
   $("#gMembers").onclick = e => {
     const target = e.target;
     if(target.dataset.m !== undefined){
       target.checked ? checked.add(target.dataset.m) : checked.delete(target.dataset.m);
+      drawRules();
       return;
     }
     const up = target.dataset.up, down = target.dataset.down;
@@ -1486,6 +1892,9 @@ function editGroup(name){
   };
 
   $("#gSave").onclick = async () => {
+    // незаполненное поле может быть на другой вкладке — сначала показываем её
+    const bad = f.querySelector(":invalid");
+    if(bad && bad.closest(".pane")) setPane(bad.closest(".pane").id.slice(3));
     if(!f.reportValidity()) return;
     const n = {
       ...g,
@@ -1498,7 +1907,17 @@ function editGroup(name){
       password: $("#gPass").value,
       all_down: $("#gAll").value,
       kill_on_switch: $("#gKill").checked,
-      max_conns: +$("#gMax").value
+      max_conns: +$("#gMax").value,
+      sniff: $("#gSniff").checked,
+      failover: $("#gFail").value,
+      wait_ms: +$("#gWait").value,
+      cache_min: +$("#gCache").value,
+      watch: watch.filter(w => w.target.trim()).map(w => w.deep
+        ? { target: w.target.trim(), deep: true, expect: (w.expect || "").trim(), body_not: (w.body_not || "").trim() }
+        : { target: w.target.trim() }),
+      watch_sec: +$("#gWatchSec").value,
+      watch_fails: +$("#gWatchFails").value,
+      rules: rules.filter(r => r.domain.trim()).map(r => ({ domain: r.domain.trim(), outlet: r.outlet }))
     };
     if(n.pinned && !n.members.includes(n.pinned)) n.pinned = "";
     if(isNew) cfg.groups.push(n);
@@ -1516,6 +1935,241 @@ function editGroup(name){
   }
 
   $("#dlg").showModal();
+}
+
+/* ==========================================================================
+   Resources Tab (per-site connection selection & monitoring)
+   ========================================================================== */
+let SITES = null, sitesPrev = null, sitesRate = null, sitesBodyKey = "";
+let sitesGroup = store.get("kproxyd_sites_group") || "";
+let sitesTraffic = store.get("kproxyd_sites_traffic") !== "0";
+let sitesQuery = "", sitesLimit = 100, sitesToolbarKey = "";
+
+const isIP = s => /^[\d.]+$/.test(s) || s.includes(":");
+const errText = c => !c ? "" : c.startsWith("http:") ? "HTTP " + c.slice(5) : (t("errCodes")[c] || c);
+const ICONS = {
+  watch: `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5-6.5-4.5L5.5 21l2-7.5L2 9h7z"/></svg>`,
+  rule: `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 17v5M5 17h14l-2-4V4H7v9z"/></svg>`,
+  reset: `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>`
+};
+
+function siteStatus(r){
+  switch(r.status){
+    case "ok": return [t("stOk"), "", "success"];
+    case "alt": return [t("stAlt")(r.via), "alt", "special"];
+    case "rule": return [t("stRule")(r.via), "alt", "special"];
+    case "down": return [t("stDown"), "bad", "danger"];
+  }
+  return [t("stNone"), "", "tag"];
+}
+
+function siteChip(r){
+  const [txt, , kind] = siteStatus(r);
+  const dot = kind === "success" || kind === "danger" ? `<span class="dot"></span>` : "";
+  return `<span class="ndw-chip ndw-chip--${kind}">${dot}${esc(txt)}</span>`;
+}
+
+function cellTitle(name, c){
+  const parts = [name];
+  if(c.disabled) parts.push(t("cellOff"));
+  if(c.state && c.state !== "none"){
+    parts.push((c.state === "ok" ? "✓ " + ms(c.rtt) : "✗ " + errText(c.err)) + " · " + (c.src === "p" ? t("srcP") : t("srcT")) + " · " + ago(c.at));
+    parts.push(t("okFail")(c.ok, c.fail));
+    if(c.bad) parts.push(t("badNote"));
+  }
+  return parts.join("\n");
+}
+
+function siteCell(name, c){
+  const title = esc(cellTitle(name, c));
+  if(!c.state || c.state === "none") return `<span class="cell none" title="${title}">— ${esc(c.disabled ? t("cellOff") : t("cellNone"))}</span>`;
+  const src = `<span class="src">${esc(c.src === "p" ? t("srcLetterP") : t("srcLetterT"))}</span>`;
+  const sel = c.chosen ? " sel" : "";
+  return c.state === "ok"
+    ? `<span class="cell ok${sel}" title="${title}">✓ ${ms(c.rtt)} ${src}</span>`
+    : `<span class="cell fail${sel}" title="${title}">✗ ${esc(errText(c.err))} ${src}</span>`;
+}
+
+// «Ресурсы» в карточке узла: отслеживаемые и до трёх проблемных сайтов из трафика
+function siteMini(g, sum){
+  const rows = sum.rows.map(r => {
+    const [txt, cls] = siteStatus(r);
+    const sq = g.members.map(m => {
+      const c = r.cells[m] || { state: "none" };
+      return `<i class="sq ${c.state === "none" ? "" : c.state}${c.chosen ? " sel" : ""}" title="${esc(cellTitle(m, c))}"></i>`;
+    }).join("");
+    return `<div class="res-mini__row"><span class="res-mini__name" title="${esc(r.site)}">${r.watched ? "★ " : ""}${esc(r.site)}</span><span>${sq}</span><span class="res-mini__st ${cls}" title="${esc(txt)}">${esc(txt)}</span></div>`;
+  }).join("");
+  const foot = [rows ? esc(t("miniLegend")) : "", g.sniff ? esc(t("miniFoot")(sum.total, sum.alt, sum.down)) : ""].filter(Boolean).join("<br>");
+  return `<div class="section-label"><span>${esc(t("sitesSection"))}</span><button type="button" class="link-btn" data-act="gotoSites" data-g="${esc(g.name)}">${esc(t("allResources"))}</button></div>
+    ${rows ? `<div class="res-mini">${rows}</div>` : ""}
+    ${foot ? `<div class="res-mini__foot">${foot}</div>` : ""}`;
+}
+
+async function loadSites(){
+  if(!S || !S.config.groups.length){ SITES = null; renderSites(); return; }
+  const names = S.config.groups.map(g => g.name);
+  if(!names.includes(sitesGroup)) sitesGroup = names[0];
+  const group = sitesGroup;
+  try {
+    const j = await api("GET", `/api/sites?group=${encodeURIComponent(group)}&traffic=${sitesTraffic ? 1 : 0}&limit=${sitesLimit}`);
+    if(group !== sitesGroup) return; // пока ждали ответ, выбрали другой узел
+    // соединений в секунду — по разнице счётчика между опросами
+    const now = Date.now(), same = sitesPrev && sitesPrev.group === group && j.stats.conns >= sitesPrev.conns;
+    if(!same) sitesRate = null;
+    if(!same || now - sitesPrev.at >= 1000){
+      if(same) sitesRate = (j.stats.conns - sitesPrev.conns) / ((now - sitesPrev.at) / 1000);
+      sitesPrev = { group, conns: j.stats.conns, at: now };
+    }
+    SITES = j;
+  } catch(e) {
+    SITES = null;
+  }
+  renderSites();
+}
+
+function renderSites(){
+  const cfg = S && S.config;
+  if(!cfg || !cfg.groups.length){
+    sitesToolbarKey = "";
+    $("#sitesToolbar").innerHTML = "";
+    $("#sitesBody").innerHTML = `<div class="empty">${esc(t("noGroupsSites"))}</div>`;
+    return;
+  }
+  // панель пересобираем, только когда она изменилась: иначе поле поиска теряло бы фокус
+  const key = [currentLang, sitesGroup, sitesTraffic, ...cfg.groups.map(g => g.name)].join("|");
+  if(key !== sitesToolbarKey){
+    sitesToolbarKey = key;
+    $("#sitesToolbar").innerHTML = `<div class="seg">${cfg.groups.map(g =>
+        `<button type="button" data-act="sitesGroup" data-g="${esc(g.name)}" class="${g.name === sitesGroup ? "on" : ""}">${esc(g.name)}</button>`).join("")}</div>
+      <input type="search" id="sitesSearch" placeholder="${esc(t("searchPh"))}" value="${esc(sitesQuery)}" aria-label="${esc(t("searchPh"))}">
+      <label class="chk"><span class="ndw-toggle"><input type="checkbox" id="sitesTraffic" ${sitesTraffic ? "checked" : ""}><span class="ndw-toggle__track"></span><span class="ndw-toggle__thumb"></span></span>${esc(t("showTraffic"))}</label>`;
+    $("#sitesSearch").oninput = e => { sitesQuery = e.target.value.trim().toLowerCase(); renderSitesBody(); };
+    $("#sitesTraffic").onchange = e => {
+      sitesTraffic = e.target.checked;
+      store.set("kproxyd_sites_traffic", sitesTraffic ? "1" : "0");
+      loadSites();
+    };
+  }
+  renderSitesBody();
+}
+
+function renderSitesBody(){
+  const el = $("#sitesBody");
+  const g = S.config.groups.find(x => x.name === sitesGroup);
+  if(!g || !SITES || SITES.group !== sitesGroup){ el.innerHTML = ""; sitesBodyKey = ""; return; }
+  // без изменений не перерисовываем: иначе каждые 3 секунды пропадала бы подсказка под курсором
+  const key = JSON.stringify([SITES, sitesRate, sitesQuery, currentLang, g]);
+  if(key === sitesBodyKey && el.innerHTML) return;
+  sitesBodyKey = key;
+
+  const st = SITES.stats;
+  const hitPct = st.hits + st.misses ? Math.round(st.hits * 100 / (st.hits + st.misses)) + "%" : "—";
+  const rate = sitesRate == null ? "—" : sitesRate.toFixed(1).replace(".", currentLang === "ru" ? "," : ".");
+  const stats = `<div class="stats">
+    <div class="stat"><div class="stat__v">${rate}</div><div class="stat__l">${esc(t("statRate"))}</div></div>
+    <div class="stat"><div class="stat__v">${hitPct}</div><div class="stat__l">${esc(t("statHits"))}</div></div>
+    <div class="stat"><div class="stat__v">${st.hedges_hour}</div><div class="stat__l">${esc(t("statHedges"))}</div></div>
+    <div class="stat"><div class="stat__v">${st.entries} <small>/ ${st.max}</small></div><div class="stat__l">${esc(t("statEntries"))}</div></div>
+  </div>`;
+
+  const q = sitesQuery;
+  const match = r => !q || r.site.includes(q) || (r.host || "").includes(q);
+  const watched = SITES.rows.filter(r => r.watched && match(r));
+  const traffic = SITES.rows.filter(r => !r.watched && match(r));
+  const members = g.members;
+  const cols = members.length + 3;
+  const row = r => {
+    const domain = !isIP(r.site);
+    const btn = (act, title, icon, extra = "") =>
+      `<button type="button" class="icon-btn" data-act="${act}" data-s="${esc(r.site)}" ${extra} title="${esc(title)}" aria-label="${esc(title)}">${icon}</button>`;
+    const sub = r.watched
+      ? (r.deep ? t("deepCheck") : t("lightCheck")) + (r.target && r.target !== r.site ? " · " + r.target : "")
+      : (domain ? (r.host && r.host !== r.site ? r.host + " · " : "") : t("ipSub") + " · ") + t("connsSub")(r.conns, ago(r.last_seen));
+    const hasData = r.conns > 0 || Object.values(r.cells).some(c => c.state !== "none");
+    const acts = [
+      !r.watched && domain ? btn("siteWatch", t("actWatch"), ICONS.watch) : "",
+      domain && r.via && r.status !== "rule" ? btn("siteRule", t("actRule"), ICONS.rule, `data-o="${esc(r.via)}"`) : "",
+      hasData ? btn("siteReset", t("actReset"), ICONS.reset) : ""
+    ].join("");
+    return `<tr>
+      <td><span class="dom">${r.watched ? "★ " : ""}${esc(r.site)}</span><span class="sub">${esc(sub)}</span></td>
+      ${members.map(m => `<td>${siteCell(m, r.cells[m] || { state: "none" })}</td>`).join("")}
+      <td>${siteChip(r)}</td>
+      <td class="acts">${acts}</td>
+    </tr>`;
+  };
+
+  let body = "";
+  if(watched.length) body += `<tr class="grp"><td colspan="${cols}">${esc(t("watchedGroup"))}</td></tr>` + watched.map(row).join("");
+  if(sitesTraffic && traffic.length) body += `<tr class="grp"><td colspan="${cols}">${esc(t("trafficGroup")(SITES.total))}</td></tr>` + traffic.map(row).join("");
+  const shown = SITES.rows.filter(r => !r.watched).length;
+  if(sitesTraffic && !q && SITES.total > shown){
+    body += `<tr><td colspan="${cols}" class="meta" style="text-align:center"><button type="button" class="link-btn" data-act="sitesMore">${esc(t("showMore")(SITES.total - shown))}</button></td></tr>`;
+  }
+
+  const table = body
+    ? `<div class="table-wrap"><table class="res-table">
+        <thead><tr><th>${esc(t("colResource"))}</th>${members.map(m => `<th>${esc(m)}</th>`).join("")}<th>${esc(t("colStatus"))}</th><th></th></tr></thead>
+        <tbody>${body}</tbody></table></div>
+      <div class="legend">
+        <span><span class="cell ok sel">✓</span> ${esc(t("legendSel"))}</span>
+        <span><b class="src">${esc(t("srcLetterP"))}</b> ${esc(t("legendP"))}</span>
+        <span><b class="src">${esc(t("srcLetterT"))}</b> ${esc(t("legendT"))}</span>
+        <span>${esc(t("legendHover"))}</span>
+      </div>`
+    : `<div class="empty" style="margin-top:4px">${esc(t("noSitesYet"))}</div>`;
+
+  el.innerHTML = stats + `<article class="card">
+    <div class="row" style="margin-bottom:8px; flex-wrap:wrap;">
+      <h2>${esc(t("sitesTitle")(g.name))}</h2>
+      <div style="display:flex; gap:6px;">
+        ${g.watch && g.watch.length ? `<button type="button" class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="watchNow" data-g="${esc(g.name)}">${esc(t("checkNowBtn"))}</button>` : ""}
+        <button type="button" class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="editGroup" data-g="${esc(g.name)}" data-p="${g.sniff ? "watch" : "pick"}">${esc(t("configureBtn"))}</button>
+      </div>
+    </div>
+    ${g.sniff ? "" : `<p class="hint" style="margin:0 0 10px">${esc(t("sniffOffHint"))}</p>`}
+    ${table}
+  </article>`;
+}
+
+async function siteWatch(site){
+  const cfg = clone(S.config);
+  const g = cfg.groups.find(x => x.name === sitesGroup);
+  if(!g) return;
+  if(g.watch.length >= 10){ toast(t("watchLimit")); return; }
+  if(!g.watch.some(w => w.target === site)) g.watch.push({ target: site });
+  if(await saveConfig(cfg, t("watchAdded")(site))) api("POST", `/api/groups/${encodeURIComponent(g.name)}/watch`).catch(() => {});
+}
+
+async function siteRule(site, outlet){
+  const cfg = clone(S.config);
+  const g = cfg.groups.find(x => x.name === sitesGroup);
+  if(!g) return;
+  g.rules = g.rules.filter(r => r.domain !== site);
+  g.rules.push({ domain: site, outlet });
+  await saveConfig(cfg, t("ruleAdded")(site, outlet));
+}
+
+async function siteReset(site){
+  try {
+    await api("POST", "/api/sites/reset", { group: sitesGroup, site });
+    toast(t("siteResetToast"));
+    sitesBodyKey = "";
+    loadSites();
+  } catch(e) {
+    toast(e.message);
+  }
+}
+
+async function watchNow(group){
+  try {
+    await api("POST", `/api/groups/${encodeURIComponent(group)}/watch`);
+    toast(t("checkStarted"));
+    setTimeout(load, 4000);
+  } catch(e) {
+    toast(e.message);
+  }
 }
 
 /* ==========================================================================
@@ -1722,6 +2376,7 @@ function editOutlet(name){
       cfg.groups.forEach(g => {
         g.members = g.members.map(m => m === name ? nn : m);
         if(g.pinned === name) g.pinned = nn;
+        (g.rules || []).forEach(r => { if(r.outlet === name) r.outlet = nn; });
       });
     }
     o.name = nn;
@@ -1896,7 +2551,17 @@ document.addEventListener("click", e => {
   const d = b.dataset;
   switch(d.act){
     case "pin": pin(d.g, d.o); break;
-    case "editGroup": editGroup(d.g); break;
+    case "editGroup": editGroup(d.g, d.p); break;
+    case "gotoSites": sitesGroup = d.g; store.set("kproxyd_sites_group", d.g); showTab("sites"); break;
+    case "sitesGroup":
+      sitesGroup = d.g; store.set("kproxyd_sites_group", d.g);
+      sitesLimit = 100; SITES = null; sitesToolbarKey = ""; loadSites();
+      break;
+    case "sitesMore": sitesLimit = 2000; loadSites(); break;
+    case "siteWatch": siteWatch(d.s); break;
+    case "siteRule": siteRule(d.s, d.o); break;
+    case "siteReset": siteReset(d.s); break;
+    case "watchNow": watchNow(d.g); break;
     case "toggleOutlet": toggleOutlet(d.o); break;
     case "editOutlet": editOutlet(d.o); break;
     case "delOutletDirect": deleteOutletDirect(d.o); break;
@@ -1907,25 +2572,22 @@ document.addEventListener("click", e => {
 // Sidebar menu navigation
 document.querySelectorAll(".menu-item[data-tab]").forEach(b => {
   b.onclick = () => {
-    tab = b.dataset.tab;
-    document.querySelectorAll(".menu-item").forEach(x => x.classList.toggle("active", x === b));
-    document.querySelectorAll("section[id^=tab-]").forEach(s => s.hidden = s.id !== "tab-" + tab);
-
-    const captions = {
-      groups: t("navGroups"),
-      outlets: t("navOutlets"),
-      log: t("navLog"),
-      settings: t("navSettings")
-    };
-    $("#headerCaption").textContent = captions[tab] || tab;
-
-    if(tab === "settings" && S){ settingsDirty = false; renderSettings(); }
+    showTab(b.dataset.tab);
 
     if(window.innerWidth <= 768){
       $("#sidebar").classList.remove("mobile-open");
     }
   };
 });
+
+function showTab(name){
+  tab = name;
+  document.querySelectorAll(".menu-item[data-tab]").forEach(x => x.classList.toggle("active", x.dataset.tab === tab));
+  document.querySelectorAll("section[id^=tab-]").forEach(s => s.hidden = s.id !== "tab-" + tab);
+  $("#headerCaption").textContent = caption(tab);
+  if(tab === "settings" && S){ settingsDirty = false; renderSettings(); }
+  if(tab === "sites" && S){ sitesToolbarKey = ""; loadSites(); }
+}
 
 // Sidebar Toggle Button
 $("#btnToggleSidebar").onclick = () => {

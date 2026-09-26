@@ -175,7 +175,17 @@ func (s *SocksServer) handle(c net.Conn) {
 	if _, err := io.ReadFull(c, pb[:]); err != nil {
 		return
 	}
-	target := net.JoinHostPort(host, strconv.Itoa(int(binary.BigEndian.Uint16(pb[:]))))
+	port := binary.BigEndian.Uint16(pb[:])
+	target := net.JoinHostPort(host, strconv.Itoa(int(port)))
+
+	if g := cfg.group(s.group); g != nil && g.Sniff && (port == 443 || port == 80) {
+		reqHost := ""
+		if req[3] == 3 {
+			reqHost = normDomain(host)
+		}
+		s.handleSites(c, cfg, g, network, target, reqHost)
+		return
+	}
 
 	dev, outlet, ok := s.app.pick(cfg, s.group)
 	if !ok {
@@ -270,10 +280,14 @@ func dialErrCode(err error) byte {
 // Когда одна сторона закончила передачу, её FIN передаётся дальше (CloseWrite), а вторая
 // работает, сколько нужно: клиент мог отправить запрос и закрыть запись, а ответ (большой
 // файл) идёт ещё долго. Мёртвого собеседника обнаружит TCP keepalive.
-func pipe(a, b net.Conn) {
+// Возвращает, сколько байт пришло от b и чем закончилось их чтение.
+func pipe(a, b net.Conn) (fromB int64, errB error) {
 	done := make(chan struct{}, 2)
 	cp := func(dst, src net.Conn) {
-		_, _ = io.Copy(dst, src)
+		n, err := io.Copy(dst, src)
+		if src == b {
+			fromB, errB = n, err
+		}
 		if tc, ok := dst.(*net.TCPConn); ok {
 			_ = tc.CloseWrite()
 		}
@@ -291,6 +305,7 @@ func pipe(a, b net.Conn) {
 	<-done
 	a.Close()
 	b.Close()
+	return fromB, errB
 }
 
 // ---------- учёт соединений ----------
