@@ -276,15 +276,25 @@ func dialErrCode(err error) byte {
 	return repFail
 }
 
-// pipe копирует данные в обе стороны; на Linux io.Copy между TCP-сокетами использует splice.
-// Когда одна сторона закончила передачу, её FIN передаётся дальше (CloseWrite), а вторая
-// работает, сколько нужно: клиент мог отправить запрос и закрыть запись, а ответ (большой
-// файл) идёт ещё долго. Мёртвого собеседника обнаружит TCP keepalive.
+// copyBufs — буферы для pipe. 16 КБ вмещают самую большую запись TLS.
+var copyBufs = sync.Pool{New: func() any { b := make([]byte, 16<<10); return &b }}
+
+// pipe копирует данные в обе стороны. Когда одна сторона закончила передачу, её FIN передаётся
+// дальше (CloseWrite), а вторая работает, сколько нужно: клиент мог отправить запрос и закрыть
+// запись, а ответ (большой файл) идёт ещё долго. Мёртвого собеседника обнаружит TCP keepalive.
 // Возвращает, сколько байт пришло от b и чем закончилось их чтение.
+//
+// Копируем обычными read/write через свой буфер, а не splice, который io.Copy выбрал бы сам
+// для пары TCP-сокетов: из туннеля данные приходят пакетами по ~1,4 КБ, и на каждый splice
+// тратит два вызова через промежуточный pipe. На роутере (ядро 4.9, ARM) это вдвое дороже
+// копирования по CPU на вызов, а долгие вызовы ещё и будоражат планировщик Go.
 func pipe(a, b net.Conn) (fromB int64, errB error) {
 	done := make(chan struct{}, 2)
 	cp := func(dst, src net.Conn) {
-		n, err := io.Copy(dst, src)
+		bp := copyBufs.Get().(*[]byte)
+		// обёртки скрывают ReadFrom/WriteTo, иначе io.CopyBuffer всё равно ушёл бы в splice
+		n, err := io.CopyBuffer(struct{ io.Writer }{dst}, struct{ io.Reader }{src}, *bp)
+		copyBufs.Put(bp)
 		if src == b {
 			fromB, errB = n, err
 		}
