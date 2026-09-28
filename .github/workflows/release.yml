@@ -33,6 +33,7 @@ jobs:
         run: |
           test -z "$(gofmt -l .)" || { gofmt -l .; echo "нужен gofmt"; exit 1; }
           go vet ./...
+          go test -count=1 ./...
           for f in build.sh scripts/install.sh scripts/uninstall.sh scripts/S99kproxyd; do sh -n "$f"; done
 
       - name: Сборка
