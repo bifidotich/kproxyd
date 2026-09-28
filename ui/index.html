@@ -1089,6 +1089,9 @@ const i18n = {
     stDown: "unreachable everywhere",
     stRule: v => `rule → ${v}`,
     stNone: "no data",
+    stNoRoute: "no connection was available",
+    stIsp: "via ISP (all connections down)",
+    noRouteTitle: (n, isp, a) => `Connections while the node had no working connection: ${n}` + (isp ? `, of them via ISP: ${isp}` : "") + ` · last ${a}`,
     cellNone: "no data",
     cellOff: "connection down",
     errCodes: { timeout: "no answer", reset: "reset", refused: "refused", closed: "closed", unreach: "no route", dns: "DNS error", slow: "slow", early: "cut off", alert: "TLS alert", proto: "not TLS", stub: "block page", forbidden: "forbidden", error: "error" },
@@ -1124,6 +1127,10 @@ const i18n = {
     legendP: "kproxyd check",
     legendT: "real traffic",
     legendHover: "Hover a cell for details",
+    legendMs: "ms — time to the site's first answer; node and connection cards show the full check (DNS, connection, TLS), so they are higher",
+    firstAnswer: v => `first answer in ${v}`,
+    probeRtt: v => `check ${v}`,
+    probeRttTitle: "Check latency through the tunnel: DNS, connection and TLS handshake to the check URL. Sites usually answer faster — see Resources",
     actWatch: "Watch",
     actRule: "Pin with a rule",
     actReset: "Reset selection",
@@ -1334,6 +1341,9 @@ const i18n = {
     stDown: "недоступен везде",
     stRule: v => `правило → ${v}`,
     stNone: "нет данных",
+    stNoRoute: "не было доступных подключений",
+    stIsp: "через провайдера (подключения недоступны)",
+    noRouteTitle: (n, isp, a) => `Соединений, когда в узле не было ни одного рабочего подключения: ${n}` + (isp ? `, из них через провайдера: ${isp}` : "") + ` · последнее ${a}`,
     cellNone: "нет данных",
     cellOff: "подключение недоступно",
     errCodes: { timeout: "тишина", reset: "сброс", refused: "отказ", closed: "закрыто", unreach: "нет маршрута", dns: "ошибка DNS", slow: "медленно", early: "обрыв", alert: "TLS-отказ", proto: "не TLS", stub: "заглушка", forbidden: "запрещено", error: "ошибка" },
@@ -1369,6 +1379,10 @@ const i18n = {
     legendP: "проверка kproxyd",
     legendT: "реальный трафик",
     legendHover: "Наведите на ячейку — подробности и время",
+    legendMs: "мс — время до первого ответа сайта; на карточках узлов и подключений — полная проверка (DNS, соединение, TLS), поэтому там больше",
+    firstAnswer: v => `первый ответ за ${v}`,
+    probeRtt: v => `проверка ${v}`,
+    probeRttTitle: "Задержка проверки через туннель: DNS, соединение и рукопожатие TLS с адресом проверки. Сайты обычно отвечают быстрее — см. «Ресурсы»",
     actWatch: "Отслеживать",
     actRule: "Закрепить правилом",
     actReset: "Сбросить выбор",
@@ -1694,7 +1708,7 @@ function renderGroups(){
       const statusText = o && o.healthy ? ms(o.ewma) : (o && o.enabled ? t("unavailable") : t("disabled"));
       return `<li class="route-item ${cls}">
         <span class="route-stop"></span>
-        <span class="route-name">${esc(m)} <span class="route-ping num">${statusText}</span></span>
+        <span class="route-name">${esc(m)} <span class="route-ping num"${o && o.healthy ? ` title="${esc(t("probeRttTitle"))}"` : ""}>${statusText}</span></span>
         ${pinned ? `<button class="ndw-btn ndw-btn--primary ndw-btn--small" data-act="pin" data-g="${esc(g.name)}" data-o="" title="${esc(t("unpinHint"))}">${esc(t("pinnedBtn"))}</button>`
                  : `<button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="pin" data-g="${esc(g.name)}" data-o="${esc(m)}">${esc(t("pinBtn"))}</button>`}
       </li>`;
@@ -2131,25 +2145,32 @@ function siteStatus(r){
     case "alt": return [t("stAlt")(r.via), "alt", "special"];
     case "rule": return [t("stRule")(r.via), "alt", "special"];
     case "down": return [t("stDown"), "bad", "danger"];
+    case "noroute": return [t("stNoRoute"), "bad", "danger"];
+    case "isp": return [t("stIsp"), "alt", "tag"];
   }
   return [t("stNone"), "", "tag"];
 }
 
+// соединения, для которых в узле не было ни одного рабочего подключения
+const noRouteTitle = r => r.no_route ? t("noRouteTitle")(r.no_route, r.isp, ago(r.none_at)) : "";
+
 function siteChip(r){
   const [txt, , kind] = siteStatus(r);
   const dot = kind === "success" || kind === "danger" ? `<span class="dot"></span>` : "";
-  return `<span class="ndw-chip ndw-chip--${kind}">${dot}${esc(txt)}</span>`;
+  const title = noRouteTitle(r);
+  return `<span class="ndw-chip ndw-chip--${kind}"${title ? ` title="${esc(title)}"` : ""}>${dot}${esc(txt)}</span>`;
 }
 
 // ok | fail | slow | none; slow — подключение раз за разом отвечало позже запасного, но не отказало
-const cellKind = c => !c.state || c.state === "none" ? "none" : c.state === "fail" && c.err === "slow" ? "slow" : c.state;
+const cellKind = c => !c.state || c.state === "none" ? "none" : c.err === "slow" ? "slow" : c.state;
 
 function cellTitle(name, c){
   const parts = [name];
   if(c.disabled) parts.push(t("cellOff"));
   if(c.state && c.state !== "none"){
     const k = cellKind(c);
-    parts.push((k === "ok" ? "✓ " + ms(c.rtt) : (k === "slow" ? "⏱ " : "✗ ") + errText(c.err)) + " · " + (c.src === "p" ? t("srcP") : t("srcT")) + " · " + ago(c.at));
+    const head = k === "ok" ? "✓ " + t("firstAnswer")(ms(c.rtt)) : (k === "slow" ? "⏱ " : "✗ ") + errText(c.err);
+    parts.push([head, c.src === "p" ? t("srcP") : t("srcT"), c.at && !c.at.startsWith("0001") ? ago(c.at) : ""].filter(Boolean).join(" · "));
     parts.push(t("okFail")(c.ok, c.fail));
     if(c.slow) parts.push(t("slowNote")(c.slow));
     if(c.bad) parts.push(t("badNote"));
@@ -2294,6 +2315,7 @@ function renderSitesBody(){
         <span><span class="cell ok sel">✓</span> ${esc(t("legendSel"))}</span>
         <span><b class="src">${esc(t("srcLetterP"))}</b> ${esc(t("legendP"))}</span>
         <span><b class="src">${esc(t("srcLetterT"))}</b> ${esc(t("legendT"))}</span>
+        <span>${esc(t("legendMs"))}</span>
         <span>${esc(t("legendHover"))}</span>
       </div>`
     : `<div class="empty" style="margin-top:4px">${esc(t("noSitesYet"))}</div>`;
@@ -2424,7 +2446,7 @@ function renderOutlets(){
           <span class="dot"></span>
           <span>${oc.enabled ? (o.healthy ? t("available") : t("unavailable")) : t("disabled")}</span>
         </span>
-        <span class="meta num">${oc.enabled ? `${ms(o.ewma)}${o.healthy && formatDuration(o.up_since) ? ` · ${t("stableFor")}${formatDuration(o.up_since)}` : ""}` : t("disabledNotProbed")}</span>
+        <span class="meta num" title="${esc(t("probeRttTitle"))}">${oc.enabled ? `${t("probeRtt")(ms(o.ewma))}${o.healthy && formatDuration(o.up_since) ? ` · ${t("stableFor")}${formatDuration(o.up_since)}` : ""}` : t("disabledNotProbed")}</span>
       </div>
 
       ${spark(o.history)}

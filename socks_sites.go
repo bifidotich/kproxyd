@@ -175,6 +175,7 @@ func (s *SocksServer) handleSites(c net.Conn, cfg *Config, g *GroupCfg, network,
 
 	order := a.siteOrder(g, host, site)
 	if len(order) == 0 {
+		a.sites.noOutlet(g.Name, site, g.AllDown == "isp")
 		if g.AllDown != "isp" {
 			return
 		}

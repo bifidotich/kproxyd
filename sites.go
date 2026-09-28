@@ -46,6 +46,11 @@ type siteEntry struct {
 	lastSeen    time.Time
 	per         map[string]*siteOutlet
 	el          *list.Element
+
+	// соединения, для которых в группе не нашлось ни одного рабочего подключения:
+	// отклонены (all_down=reject) или ушли напрямую через провайдера (all_down=isp)
+	noRoute, isp     int
+	noRouteAt, ispAt time.Time
 }
 
 type siteCounters struct {
@@ -271,6 +276,21 @@ func (s *SiteCache) failLocked(group, site, outlet, src, code string, mark bool,
 	return false
 }
 
+// noOutlet — у группы не было ни одного рабочего подключения для соединения к сайту.
+func (s *SiteCache) noOutlet(group, site string, isp bool) {
+	now := time.Now()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	e := s.entry(group, site, "", now)
+	if isp {
+		e.isp++
+		e.ispAt = now
+	} else {
+		e.noRoute++
+		e.noRouteAt = now
+	}
+}
+
 func (e *siteEntry) outlet(name string) *siteOutlet {
 	o := e.per[name]
 	if o == nil {
@@ -356,9 +376,12 @@ type SiteRow struct {
 	Deep     bool                `json:"deep,omitempty"`
 	Conns    int                 `json:"conns"`
 	LastSeen time.Time           `json:"last_seen"`
-	Status   string              `json:"status"` // ok | alt | down | rule | none
+	Status   string              `json:"status"` // ok | alt | down | rule | noroute | isp | none
 	Via      string              `json:"via,omitempty"`
 	Cells    map[string]SiteCell `json:"cells"`
+	NoRoute  int                 `json:"no_route,omitempty"` // соединений без рабочего подключения
+	ISP      int                 `json:"isp,omitempty"`      // из них ушли через провайдера
+	NoneAt   time.Time           `json:"none_at"`            // когда было последнее такое соединение
 }
 
 type SiteStats struct {
@@ -392,18 +415,26 @@ func (v siteView) row(e *siteEntry, site string, now time.Time) SiteRow {
 	r := SiteRow{Site: site, Cells: map[string]SiteCell{}, Status: "none"}
 	if e != nil {
 		r.Host, r.Conns, r.LastSeen = e.host, e.conns, e.lastSeen
+		r.NoRoute, r.ISP = e.noRoute+e.isp, e.isp
+		r.NoneAt = e.noRouteAt
+		if e.ispAt.After(r.NoneAt) {
+			r.NoneAt = e.ispAt
+		}
 	}
 	var okList []string
 	anyData := false
 	for _, m := range v.g.Members {
 		c := SiteCell{State: "none", Disabled: !v.healthy[m]}
 		if e != nil {
-			if o := e.per[m]; o != nil && (o.OK > 0 || o.Fail > 0) {
+			if o := e.per[m]; o != nil && (o.OK > 0 || o.Fail > 0 || o.Slow > 0) {
 				c.OK, c.Fail, c.Slow, c.Src, c.RTT = o.OK, o.Fail, o.Slow, o.Src, int(o.RTT+0.5)
 				c.Bad = now.Before(o.BadUntil)
-				if o.lastOK() {
+				switch {
+				case o.OK == 0 && o.Fail == 0: // только опаздывало, но не отказывало
+					c.State, c.Err, c.Src = "slow", "slow", "t"
+				case o.lastOK():
 					c.State, c.At = "ok", o.LastOK
-				} else {
+				default:
 					c.State, c.At, c.Err = "fail", o.LastFail, o.Err
 				}
 			}
@@ -430,13 +461,26 @@ func (v siteView) row(e *siteEntry, site string, now time.Time) SiteRow {
 		return r
 	}
 	if !anyData {
+		// через подключения сайт не пробовали ни разу: соединения пришлись на время, когда
+		// в группе не было ни одного рабочего подключения
+		switch {
+		case e != nil && e.isp > 0 && !e.ispAt.Before(e.noRouteAt):
+			r.Status = "isp"
+		case e != nil && e.noRoute > 0:
+			r.Status = "noroute"
+		}
 		return r
 	}
 	if len(okList) == 0 {
 		r.Status = "down"
 		return r
 	}
+	// куда пойдёт следующее соединение: выбранное для сайта подключение, иначе активное
+	// подключение узла, если через него сайт не отказывал, иначе первое рабочее
 	via := okList[0]
+	if ac, ok := r.Cells[v.active]; ok && !ac.Disabled && !ac.Bad && ac.State != "fail" {
+		via = v.active
+	}
 	if e != nil && e.chosen != "" && now.Before(e.chosenUntil) && v.healthy[e.chosen] {
 		via = e.chosen
 	}
@@ -506,9 +550,9 @@ func (s *SiteCache) summary(v siteView) *SiteSummary {
 		if !r.Watched {
 			sum.Total++
 			switch r.Status {
-			case "alt":
+			case "alt", "isp":
 				sum.Alt++
-			case "down":
+			case "down", "noroute":
 				sum.Down++
 			default:
 				continue
