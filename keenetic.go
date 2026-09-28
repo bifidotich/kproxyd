@@ -39,7 +39,7 @@ var showRe = regexp.MustCompile(`^show( [A-Za-z0-9_.-]+)+$`)
 // kproxyd не имеет права менять конфигурацию Keenetic.
 func (k *Keenetic) Show(cmd string) (string, error) {
 	if !showRe.MatchString(cmd) {
-		return "", fmt.Errorf("kproxyd только читает Keenetic: команда %q запрещена", cmd)
+		return "", errf("kproxyd только читает Keenetic: команда %q запрещена", cmd)
 	}
 	k.mu.Lock()
 	defer k.mu.Unlock()

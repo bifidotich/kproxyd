@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
-	"fmt"
+	"errors"
 	"log"
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -33,6 +34,7 @@ type OutletState struct {
 	UpSince    time.Time `json:"up_since"`
 	LastCheck  time.Time `json:"last_check"`
 	LastErr    string    `json:"last_err,omitempty"`
+	LastErrEn  string    `json:"last_err_en,omitempty"`
 	History    []int     `json:"history"`
 	KConnected string    `json:"k_connected"` // что думает о туннеле сам Keenetic
 	Handshake  string    `json:"handshake,omitempty"`
@@ -44,6 +46,7 @@ type GroupState struct {
 	Active   string    `json:"active"` // имя выхода; "" = все лежат
 	Since    time.Time `json:"since"`
 	Reason   string    `json:"reason"`
+	ReasonEn string    `json:"reason_en"`
 	Conns    int       `json:"conns"`
 	ListenOK bool      `json:"listen_ok"`
 	ListenEr string    `json:"listen_err,omitempty"`
@@ -54,6 +57,7 @@ type GroupState struct {
 	Lists       []string `json:"lists"`
 	KeeneticOK  bool     `json:"keenetic_ok"`
 	KeeneticMsg string   `json:"keenetic_msg"`
+	KeeneticEn  string   `json:"keenetic_msg_en"`
 
 	Sites *SiteSummary `json:"sites,omitempty"` // блок «Ресурсы» в карточке группы
 }
@@ -62,6 +66,7 @@ type Event struct {
 	T     time.Time `json:"t"`
 	Level string    `json:"level"`
 	Msg   string    `json:"msg"`
+	MsgEn string    `json:"msg_en"`
 }
 
 type App struct {
@@ -73,7 +78,7 @@ type App struct {
 	groups  map[string]*GroupState
 	kIfaces []KIface
 	kRC     *RunningConfig
-	kErr    string
+	kErr    Text
 	events  []Event
 	socks   map[string]*SocksServer // по имени группы
 
@@ -103,11 +108,12 @@ func newApp(store *Store) *App {
 	return a
 }
 
+// logf пишет событие в журнал: в файл по-русски, в веб-интерфейс на обоих языках (см. i18n.go).
 func (a *App) logf(level, format string, args ...any) {
-	msg := fmt.Sprintf(format, args...)
-	log.Printf("[%s] %s", level, msg)
+	msg := tr(format, args...)
+	log.Printf("[%s] %s", level, msg.Ru)
 	a.mu.Lock()
-	a.events = append(a.events, Event{T: time.Now(), Level: level, Msg: msg})
+	a.events = append(a.events, Event{T: time.Now(), Level: level, Msg: msg.Ru, MsgEn: msg.En})
 	if len(a.events) > 300 {
 		a.events = a.events[len(a.events)-300:]
 	}
@@ -175,7 +181,7 @@ func (a *App) reconcileSocks(c *Config) {
 			// у удалённой группы никто больше не следит за выходами — её соединения закрываем сразу
 			if !ok {
 				if n := a.tracker.CloseGroup(name); n > 0 {
-					go a.logf("info", "группа %s удалена: закрыто %d соединений", name, n)
+					go a.logf("info", "узел %s удалён: закрыто %s", name, sessions(n))
 				}
 			}
 			continue
@@ -195,13 +201,13 @@ func (a *App) reconcileSocks(c *Config) {
 		s, err := startSocks(a, name, g.Listen, g.User, g.Password, g.MaxConns)
 		if err != nil {
 			if gs.ListenEr != err.Error() { // повторные попытки идут каждый цикл проверки — не засоряем журнал
-				go a.logf("error", "группа %s: не удалось открыть %s: %v", name, g.Listen, err)
+				go a.logf("error", "узел %s: не удалось открыть %s: %v", name, g.Listen, err)
 			}
 			gs.ListenOK, gs.ListenEr = false, err.Error()
 			continue
 		}
 		if gs.ListenEr != "" {
-			go a.logf("info", "группа %s: SOCKS5 открыт на %s", name, g.Listen)
+			go a.logf("info", "узел %s: SOCKS5 открыт на %s", name, g.Listen)
 		}
 		gs.ListenOK, gs.ListenEr = true, ""
 		a.socks[name] = s
@@ -325,11 +331,11 @@ func (a *App) probeOne(c *Config, o OutletCfg, kstate map[string]KIface) {
 	var perr error
 	switch {
 	case dev == "":
-		perr = fmt.Errorf("не удалось определить системное имя для %s", o.Iface)
+		perr = errf("не удалось определить системное имя для %s", o.Iface)
 	case !devExists(dev):
-		perr = fmt.Errorf("устройство %s отсутствует", dev)
+		perr = errf("устройство %s отсутствует", dev)
 	case known && kf.Connected == "no":
-		perr = fmt.Errorf("Keenetic: %s не подключён", o.Iface)
+		perr = errf("Keenetic: %s не подключено", o.Iface)
 	default:
 		rtt, perr = httpProbe(dev, c.Probe.URL, c.Probe.DNS, time.Duration(c.Probe.TimeoutMs)*time.Millisecond)
 	}
@@ -349,14 +355,15 @@ func (a *App) probeOne(c *Config, o OutletCfg, kstate map[string]KIface) {
 	}
 	wasHealthy := st.Healthy
 	if perr != nil {
-		st.LastErr = perr.Error()
+		et := errText(perr)
+		st.LastErr, st.LastErrEn = et.Ru, et.En
 		st.Fails++
 		st.Succ = 0
 		if st.Healthy && st.Fails >= c.Probe.FailThreshold {
 			st.Healthy = false
 		}
 	} else {
-		st.LastErr = ""
+		st.LastErr, st.LastErrEn = "", ""
 		st.Succ++
 		st.Fails = 0
 		if st.EWMA == 0 {
@@ -370,14 +377,14 @@ func (a *App) probeOne(c *Config, o OutletCfg, kstate map[string]KIface) {
 			st.UpSince = time.Now()
 		}
 	}
-	changed, name, healthy, lerr := wasHealthy != st.Healthy, st.Name, st.Healthy, st.LastErr
+	changed, name, healthy, lerr := wasHealthy != st.Healthy, st.Name, st.Healthy, Text{st.LastErr, st.LastErrEn}
 	a.mu.Unlock()
 	if changed {
 		if healthy {
-			a.logf("info", "выход %s доступен", name)
+			a.logf("info", "подключение %s доступно", name)
 		} else {
 			a.sites.dropOutlet(name)
-			a.logf("warn", "выход %s недоступен: %s", name, lerr)
+			a.logf("warn", "подключение %s недоступно: %s", name, lerr)
 		}
 	}
 }
@@ -420,17 +427,53 @@ func httpProbe(dev, rawURL, dns string, timeout time.Duration) (int, error) {
 	start := time.Now()
 	resp, err := cl.Get(rawURL)
 	if err != nil {
-		return -1, err
+		return -1, probeError(err, rawURL, dns, timeout)
 	}
 	resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return -1, fmt.Errorf("HTTP %d вместо 2xx", resp.StatusCode)
+		return -1, errf("HTTP %d вместо 2xx", resp.StatusCode)
 	}
 	ms := int(time.Since(start).Milliseconds())
 	if ms < 1 {
 		ms = 1
 	}
 	return ms, nil
+}
+
+// probeError переводит ошибку проверки в понятный текст. Go пишет, например,
+// «lookup cp.cloudflare.com on 127.0.0.1:53: read udp …->1.1.1.1:53: i/o timeout»: 127.0.0.1 там —
+// адрес из resolv.conf, хотя запрос на самом деле ушёл к DNS-серверу проверки через туннель.
+func probeError(err error, rawURL, dns string, timeout time.Duration) error {
+	host := rawURL
+	if u, e := url.Parse(rawURL); e == nil && u.Hostname() != "" {
+		host = u.Hostname()
+	}
+	var de *net.DNSError
+	var oe *net.OpError
+	var ne net.Error
+	switch {
+	case errors.As(err, &de) && dns == "system":
+		if de.IsNotFound {
+			return errf("DNS роутера: имя %s не найдено", de.Name)
+		}
+		if de.IsTimeout {
+			return errf("DNS роутера не ответил (искали %s)", de.Name)
+		}
+		return errf("DNS роутера: %s", de.Err)
+	case errors.As(err, &de):
+		if de.IsNotFound {
+			return errf("DNS-сервер %s через туннель: имя %s не найдено", dns, de.Name)
+		}
+		if de.IsTimeout {
+			return errf("DNS-сервер %s не ответил через туннель (искали %s)", dns, de.Name)
+		}
+		return errf("DNS-сервер %s через туннель: %s", dns, de.Err)
+	case errors.As(err, &ne) && ne.Timeout():
+		return errf("%s не ответил за %d мс", host, timeout.Milliseconds())
+	case errors.As(err, &oe) && oe.Err != nil:
+		return errf("не удалось соединиться с %s: %s", host, oe.Err.Error())
+	}
+	return err
 }
 
 func bindDialer(dev string, timeout time.Duration) *net.Dialer {
@@ -476,8 +519,9 @@ func (a *App) evaluate() {
 	c := a.store.Get()
 	now := time.Now()
 	type change struct {
-		group, from, to, reason string
-		kill                    bool
+		group, from, to string
+		reason          Text
+		kill            bool
 	}
 	var changes []change
 
@@ -492,9 +536,10 @@ func (a *App) evaluate() {
 			old := gs.Active
 			oldDown := old != "" && (a.outlets[old] == nil || !a.outlets[old].Healthy)
 			changes = append(changes, change{g.Name, old, next, reason, g.KillOnSwitch || oldDown})
-			gs.Active, gs.Since, gs.Reason = next, now, reason
-		} else if reason != "" {
-			gs.Reason = reason
+			gs.Active, gs.Since = next, now
+		}
+		if reason.Ru != "" {
+			gs.Reason, gs.ReasonEn = reason.Ru, reason.En
 		}
 	}
 	// счётчики соединений
@@ -521,18 +566,18 @@ func (a *App) evaluate() {
 	a.mu.Unlock()
 
 	for _, ch := range changes {
-		to := ch.to
-		if to == "" {
-			to = "нет доступных выходов"
+		to := Text{ch.to, ch.to}
+		if ch.to == "" {
+			to = tr("нет доступных подключений")
 		}
 		from := ch.from
 		if from == "" {
 			from = "—"
 		}
-		a.logf("info", "группа %s: %s ⇒ %s (%s)", ch.group, from, to, ch.reason)
+		a.logf("info", "узел %s: %s ⇒ %s (%s)", ch.group, from, to, ch.reason)
 		if ch.kill && ch.from != "" {
 			if n := a.tracker.CloseWhere(ch.group, ch.from); n > 0 {
-				a.logf("info", "группа %s: закрыто %d соединений через %s", ch.group, n, ch.from)
+				a.logf("info", "узел %s: закрыто %s через %s", ch.group, sessions(n), ch.from)
 			}
 		}
 	}
@@ -549,7 +594,7 @@ func (a *App) evaluate() {
 		return false
 	})
 	for n, k := range closed {
-		a.logf("info", "выход %s недоступен: закрыто %d соединений", n, k)
+		a.logf("info", "подключение %s недоступно: закрыто %s", n, sessions(k))
 	}
 }
 
@@ -582,19 +627,19 @@ func (a *App) closeStale(c *Config) {
 		return true
 	})
 	for k, n := range closed {
-		a.logf("info", "группа %s: %s больше не используется — закрыто %d соединений", k.group, k.outlet, n)
+		a.logf("info", "узел %s: %s больше не используется — закрыто %s", k.group, k.outlet, sessions(n))
 	}
 }
 
 // choose — политика выбора. Вызывается под a.mu.
-func (a *App) choose(c *Config, g GroupCfg, current string, now time.Time) (string, string) {
+func (a *App) choose(c *Config, g GroupCfg, current string, now time.Time) (string, Text) {
 	healthy := func(n string) bool {
 		st := a.outlets[n]
 		return st != nil && st.Enabled && st.Healthy && st.Dev != ""
 	}
 	if g.Pinned != "" {
 		if healthy(g.Pinned) {
-			return g.Pinned, "закреплён вручную"
+			return g.Pinned, tr("закреплено вручную")
 		}
 		// закреплённый упал — не держимся за мёртвый, работаем по политике
 	}
@@ -605,7 +650,7 @@ func (a *App) choose(c *Config, g GroupCfg, current string, now time.Time) (stri
 		}
 	}
 	if len(cands) == 0 {
-		return "", "все выходы группы недоступны"
+		return "", tr("все подключения узла недоступны")
 	}
 	switch g.Policy {
 	case "fastest":
@@ -615,22 +660,22 @@ func (a *App) choose(c *Config, g GroupCfg, current string, now time.Time) (stri
 		best := cands[0]
 		if healthy(current) && current != best {
 			if a.outlets[current].EWMA-a.outlets[best].EWMA < float64(g.ToleranceMs) {
-				return current, "разница задержек меньше порога"
+				return current, tr("разница задержек меньше порога")
 			}
 		}
-		return best, fmt.Sprintf("минимальная задержка %.0f мс", a.outlets[best].EWMA)
+		return best, tr("минимальная задержка %.0f мс", a.outlets[best].EWMA)
 	default: // fallback
 		retDelay := time.Duration(c.Probe.ReturnDelaySec) * time.Second
 		for _, m := range cands {
 			if m == current {
-				return m, "по приоритету"
+				return m, tr("по приоритету")
 			}
-			// возвращаемся на более приоритетный узел только после того, как он проработал return_delay
+			// возвращаемся на более приоритетное подключение только после того, как оно проработало return_delay
 			if !healthy(current) || now.Sub(a.outlets[m].UpSince) >= retDelay {
-				return m, "по приоритету"
+				return m, tr("по приоритету")
 			}
 		}
-		return cands[0], "по приоритету"
+		return cands[0], tr("по приоритету")
 	}
 }
 
@@ -667,16 +712,19 @@ func (a *App) inspect() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if err != nil {
-		if a.kErr != err.Error() {
+		et := errText(err)
+		if a.kErr != et {
 			go a.logf("error", "чтение конфигурации Keenetic: %v", err)
 		}
-		a.kErr = err.Error()
+		a.kErr = et
 		return
 	}
-	a.kRC, a.kErr = rc, ""
+	a.kRC, a.kErr = rc, Text{}
 	for _, g := range c.Groups {
 		if gs := a.groups[g.Name]; gs != nil {
-			gs.ProxyIfaces, gs.Lists, gs.KeeneticOK, gs.KeeneticMsg = checkKeenetic(g, rc)
+			var msg Text
+			gs.ProxyIfaces, gs.Lists, gs.KeeneticOK, msg = checkKeenetic(g, rc)
+			gs.KeeneticMsg, gs.KeeneticEn = msg.Ru, msg.En
 		}
 	}
 }
@@ -698,7 +746,7 @@ func sameHost(a, b string) bool {
 
 // checkKeenetic ищет в конфигурации Keenetic Proxy-подключения на SOCKS5-адрес группы
 // и списки доменов, направленные в них.
-func checkKeenetic(g GroupCfg, rc *RunningConfig) (ifaces, lists []string, ok bool, msg string) {
+func checkKeenetic(g GroupCfg, rc *RunningConfig) (ifaces, lists []string, ok bool, msg Text) {
 	lhost, lport, _ := net.SplitHostPort(g.Listen)
 	anyHost := lhost == "" || net.ParseIP(lhost) != nil && net.ParseIP(lhost).IsUnspecified()
 	var wrongProto []string
@@ -736,15 +784,15 @@ func checkKeenetic(g GroupCfg, rc *RunningConfig) (ifaces, lists []string, ok bo
 	}
 	switch {
 	case len(wrongProto) > 0 && len(ifaces) == 0:
-		return nil, nil, false, "подключение " + strings.Join(wrongProto, ", ") + " смотрит на " + addr + ", но протокол должен быть SOCKS5"
+		return nil, nil, false, tr("подключение Keenetic %s смотрит на %s, но протокол должен быть SOCKS5", strings.Join(wrongProto, ", "), addr)
 	case len(ifaces) == 0:
-		return nil, nil, false, "в Keenetic нет подключения «Клиент прокси» (SOCKS5) на " + addr + " — создайте его"
+		return nil, nil, false, tr("в Keenetic нет подключения «Клиент прокси» (SOCKS5) на %s — создайте его", addr)
 	case len(lists) == 0:
-		return ifaces, nil, false, "в " + strings.Join(ifaces, ", ") + " не направлен ни один список доменов — добавьте маршрут в Keenetic"
+		return ifaces, nil, false, tr("в %s не направлен ни один список доменов — добавьте маршрут в Keenetic", strings.Join(ifaces, ", "))
 	}
-	msg = strings.Join(ifaces, ", ") + " → " + addr
+	msg = tr("%s → %s", strings.Join(ifaces, ", "), addr)
 	if len(noReject) > 0 {
-		msg += "; без «reject» у " + strings.Join(noReject, ", ") + ": если kproxyd остановится, эти домены пойдут через провайдера"
+		msg = msg.plus(tr("; без «reject» у %s: если kproxyd остановится, эти домены пойдут через провайдера", strings.Join(noReject, ", ")))
 	}
 	return ifaces, lists, true, msg
 }

@@ -294,7 +294,7 @@ loop:
 			choose = true
 		}
 		if suspect {
-			a.logf("warn", "группа %s: через %s подряд не открываются разные сайты — проверяю подключение", g.Name, order[i].outlet)
+			a.logf("warn", "узел %s: через %s подряд не открываются разные сайты — проверяю подключение", g.Name, order[i].outlet)
 			a.probeSoon()
 		}
 	}

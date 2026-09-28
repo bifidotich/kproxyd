@@ -237,7 +237,7 @@ func validHost(s string) bool {
 // parseTarget разбирает цель проверки: домен[:порт][/путь].
 func parseTarget(t string) (host, port, path string, err error) {
 	if strings.Contains(t, "://") {
-		return "", "", "", fmt.Errorf("укажите домен без https://")
+		return "", "", "", errf("укажите домен без https://")
 	}
 	u, err := url.Parse("https://" + t)
 	if err != nil {
@@ -245,14 +245,14 @@ func parseTarget(t string) (host, port, path string, err error) {
 	}
 	host = normDomain(u.Hostname())
 	if !validHost(host) {
-		return "", "", "", fmt.Errorf("недопустимый домен %q", u.Hostname())
+		return "", "", "", errf("недопустимый домен %q", u.Hostname())
 	}
 	port = u.Port()
 	if port == "" {
 		port = "443"
 	}
 	if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
-		return "", "", "", fmt.Errorf("недопустимый порт %q", port)
+		return "", "", "", errf("недопустимый порт %q", port)
 	}
 	return host, port, u.RequestURI(), nil
 }
@@ -270,7 +270,7 @@ func parseCodes(s string) ([][2]int, error) {
 			b, err2 = strconv.Atoi(strings.TrimSpace(hi))
 		}
 		if err1 != nil || err2 != nil || a < 100 || b > 599 || a > b {
-			return nil, fmt.Errorf("коды ответа: нужно вида 200-399 или 200,204")
+			return nil, errf("коды ответа: нужно вида 200-399 или 200,204")
 		}
 		res = append(res, [2]int{a, b})
 	}
@@ -297,25 +297,25 @@ func safeWord(s string) bool {
 func (c *Config) validate() error {
 	if c.Probe.DNS != "system" {
 		if _, _, err := net.SplitHostPort(c.Probe.DNS); err != nil {
-			return fmt.Errorf("probe.dns: нужно host:port или \"system\"")
+			return errf("probe.dns: нужно host:port или \"system\"")
 		}
 	}
 	outlets := map[string]bool{}
 	for _, o := range c.Outlets {
 		if o.Name == "" || o.Iface == "" {
-			return fmt.Errorf("у выхода должны быть name и iface")
+			return errf("у подключения должны быть name и iface")
 		}
 		if !nameRe.MatchString(o.Name) {
-			return fmt.Errorf("выход %q: в названии допустимы латиница, цифры, _ . -", o.Name)
+			return errf("подключение %q: в названии допустимы латиница, цифры, _ . -", o.Name)
 		}
 		if !safeWord(o.Iface) {
-			return fmt.Errorf("выход %q: недопустимое имя интерфейса %q", o.Name, o.Iface)
+			return errf("подключение %q: недопустимое имя интерфейса %q", o.Name, o.Iface)
 		}
 		if o.Dev != "" && !safeWord(o.Dev) {
-			return fmt.Errorf("выход %q: недопустимое имя устройства %q", o.Name, o.Dev)
+			return errf("подключение %q: недопустимое имя устройства %q", o.Name, o.Dev)
 		}
 		if outlets[o.Name] {
-			return fmt.Errorf("выход %q указан дважды", o.Name)
+			return errf("подключение %q указано дважды", o.Name)
 		}
 		outlets[o.Name] = true
 	}
@@ -323,63 +323,63 @@ func (c *Config) validate() error {
 	listens := map[string]string{}
 	for _, g := range c.Groups {
 		if g.Name == "" {
-			return fmt.Errorf("у группы должно быть имя")
+			return errf("у узла должно быть имя")
 		}
 		if !nameRe.MatchString(g.Name) {
-			return fmt.Errorf("группа %q: в названии допустимы латиница, цифры, _ . -", g.Name)
+			return errf("узел %q: в названии допустимы латиница, цифры, _ . -", g.Name)
 		}
 		if g.Mode != "" {
-			return fmt.Errorf("группа %q: режим %q больше не поддерживается — kproxyd не меняет конфигурацию Keenetic. "+
-				"Уберите \"mode\", задайте listen (SOCKS5) и в Keenetic направьте списки группы в Proxy-подключение на этот адрес", g.Name, g.Mode)
+			return errf("узел %q: режим %q больше не поддерживается — kproxyd не меняет конфигурацию Keenetic. "+
+				"Уберите \"mode\", задайте listen (SOCKS5) и в Keenetic направьте списки узла в прокси-подключение на этот адрес", g.Name, g.Mode)
 		}
 		if groups[g.Name] {
-			return fmt.Errorf("группа %q указана дважды", g.Name)
+			return errf("узел %q указан дважды", g.Name)
 		}
 		groups[g.Name] = true
 		switch g.Policy {
 		case "fallback", "fastest":
 		default:
-			return fmt.Errorf("группа %q: policy должна быть fallback или fastest", g.Name)
+			return errf("узел %q: policy должна быть fallback или fastest", g.Name)
 		}
 		switch g.AllDown {
 		case "reject", "isp":
 		default:
-			return fmt.Errorf("группа %q: all_down должен быть reject или isp", g.Name)
+			return errf("узел %q: all_down должен быть reject или isp", g.Name)
 		}
 		if g.MaxConns < 1 || g.MaxConns > maxMaxConns {
-			return fmt.Errorf("группа %q: max_conns должен быть от 1 до %d", g.Name, maxMaxConns)
+			return errf("узел %q: max_conns должен быть от 1 до %d", g.Name, maxMaxConns)
 		}
 		if len(g.Members) == 0 {
-			return fmt.Errorf("группа %q: нет ни одного выхода", g.Name)
+			return errf("узел %q: нет ни одного подключения", g.Name)
 		}
 		seen := map[string]bool{}
 		for _, m := range g.Members {
 			if !outlets[m] {
-				return fmt.Errorf("группа %q: выход %q не существует", g.Name, m)
+				return errf("узел %q: подключение %q не существует", g.Name, m)
 			}
 			if seen[m] {
-				return fmt.Errorf("группа %q: выход %q повторяется", g.Name, m)
+				return errf("узел %q: подключение %q повторяется", g.Name, m)
 			}
 			seen[m] = true
 		}
 		if g.Pinned != "" && !seen[g.Pinned] {
-			return fmt.Errorf("группа %q: закреплённый выход %q не входит в группу", g.Name, g.Pinned)
+			return errf("узел %q: закреплённое подключение %q не входит в узел", g.Name, g.Pinned)
 		}
 		if _, _, err := net.SplitHostPort(g.Listen); err != nil {
-			return fmt.Errorf("группа %q: неверный listen %q (нужно host:port)", g.Name, g.Listen)
+			return errf("узел %q: неверный listen %q (нужно host:port)", g.Name, g.Listen)
 		}
 		if other, ok := listens[g.Listen]; ok {
-			return fmt.Errorf("группы %q и %q слушают один адрес %s", other, g.Name, g.Listen)
+			return errf("узлы %q и %q слушают один адрес %s", other, g.Name, g.Listen)
 		}
 		listens[g.Listen] = g.Name
 		if (g.User == "") != (g.Password == "") {
-			return fmt.Errorf("группа %q: укажите и логин, и пароль SOCKS5, или ни того, ни другого", g.Name)
+			return errf("узел %q: укажите и логин, и пароль SOCKS5, или ни того, ни другого", g.Name)
 		}
 		if len(g.User) > 255 || len(g.Password) > 255 { // предел протокола SOCKS5 (RFC 1929)
-			return fmt.Errorf("группа %q: логин и пароль SOCKS5 не длиннее 255 байт", g.Name)
+			return errf("узел %q: логин и пароль SOCKS5 не длиннее 255 байт", g.Name)
 		}
 		if err := g.validateSites(seen); err != nil {
-			return fmt.Errorf("группа %q: %v", g.Name, err)
+			return errf("узел %q: %v", g.Name, err)
 		}
 	}
 	return nil
@@ -389,50 +389,50 @@ func (g *GroupCfg) validateSites(members map[string]bool) error {
 	switch g.Failover {
 	case "off", "connect", "tls":
 	default:
-		return fmt.Errorf("failover должен быть off, connect или tls")
+		return errf("failover должен быть off, connect или tls")
 	}
 	if g.WaitMs < 300 || g.WaitMs > 15000 {
-		return fmt.Errorf("wait_ms должен быть от 300 до 15000")
+		return errf("wait_ms должен быть от 300 до 15000")
 	}
 	if g.CacheMin < 1 || g.CacheMin > 1440 {
-		return fmt.Errorf("cache_min должен быть от 1 до 1440")
+		return errf("cache_min должен быть от 1 до 1440")
 	}
 	if g.WatchSec < 30 || g.WatchSec > 3600 {
-		return fmt.Errorf("watch_sec должен быть от 30 до 3600")
+		return errf("watch_sec должен быть от 30 до 3600")
 	}
 	if g.WatchFails < 1 || g.WatchFails > 10 {
-		return fmt.Errorf("watch_fails должен быть от 1 до 10")
+		return errf("watch_fails должен быть от 1 до 10")
 	}
 	if len(g.Rules) > maxRules {
-		return fmt.Errorf("не больше %d правил", maxRules)
+		return errf("не больше %d правил", maxRules)
 	}
 	for _, r := range g.Rules {
 		if !validHost(r.Domain) {
-			return fmt.Errorf("правило: недопустимый домен %q", r.Domain)
+			return errf("правило: недопустимый домен %q", r.Domain)
 		}
 		if !members[r.Outlet] {
-			return fmt.Errorf("правило %s: подключение %q не входит в группу", r.Domain, r.Outlet)
+			return errf("правило %s: подключение %q не входит в узел", r.Domain, r.Outlet)
 		}
 	}
 	if len(g.Watch) > maxWatch {
-		return fmt.Errorf("не больше %d проверяемых ресурсов", maxWatch)
+		return errf("не больше %d проверяемых ресурсов", maxWatch)
 	}
 	targets := map[string]bool{}
 	for _, w := range g.Watch {
 		if _, _, _, err := parseTarget(w.Target); err != nil {
-			return fmt.Errorf("проверка %q: %v", w.Target, err)
+			return errf("проверка %q: %v", w.Target, err)
 		}
 		if targets[w.Target] {
-			return fmt.Errorf("проверка %q указана дважды", w.Target)
+			return errf("проверка %q указана дважды", w.Target)
 		}
 		targets[w.Target] = true
 		if w.Deep {
 			if _, err := parseCodes(w.Expect); err != nil {
-				return fmt.Errorf("проверка %q: %v", w.Target, err)
+				return errf("проверка %q: %v", w.Target, err)
 			}
 		}
 		if len(w.BodyNot) > 200 {
-			return fmt.Errorf("проверка %q: текст заглушки не длиннее 200 символов", w.Target)
+			return errf("проверка %q: текст заглушки не длиннее 200 символов", w.Target)
 		}
 	}
 	return nil

@@ -67,7 +67,7 @@ func (s *SocksServer) serve() {
 			c.Close()
 			if time.Since(s.lastRefuse) > time.Minute {
 				s.lastRefuse = time.Now()
-				go s.app.logf("warn", "группа %s: достигнут предел одновременных соединений (%d), новые отклоняются", s.group, lim)
+				go s.app.logf("warn", "узел %s: достигнут предел одновременных соединений (%d), новые отклоняются", s.group, lim)
 			}
 			continue
 		}

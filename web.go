@@ -146,7 +146,7 @@ func (a *App) hLogin(w http.ResponseWriter, r *http.Request) {
 	c := a.store.Get()
 	if subtle.ConstantTimeCompare([]byte(in.User), []byte(c.Web.User)) != 1 ||
 		subtle.ConstantTimeCompare([]byte(in.Password), []byte(c.Web.Password)) != 1 {
-		writeErr(w, http.StatusUnauthorized, errors.New("неверный логин или пароль"))
+		writeErr(w, http.StatusUnauthorized, errf("неверный логин или пароль"))
 		return
 	}
 	token := createSessionToken(c)
@@ -183,7 +183,8 @@ func writeErr(w http.ResponseWriter, code int, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(map[string]any{"error": err.Error()})
+	t := errText(err)
+	_ = json.NewEncoder(w).Encode(map[string]any{"error": t.Ru, "error_en": t.En})
 }
 
 func (a *App) hState(w http.ResponseWriter, r *http.Request) {
@@ -241,7 +242,8 @@ func (a *App) hState(w http.ResponseWriter, r *http.Request) {
 		"k_ifaces":   kifs,
 		"k_lists":    lists,
 		"k_routes":   routes,
-		"k_error":    kerr,
+		"k_error":    kerr.Ru,
+		"k_error_en": kerr.En,
 		"events":     evs,
 		"wan_dev":    wanDev(),
 		"version":    version,
@@ -272,7 +274,7 @@ func (a *App) hPutConfig(w http.ResponseWriter, r *http.Request) {
 			c.RCI = old.RCI
 		}
 		if c.NDMC != old.NDMC || c.RCI != old.RCI {
-			return errors.New("ndmc и rci меняются только в файле конфигурации")
+			return errf("ndmc и rci меняются только в файле конфигурации")
 		}
 		return nil
 	})
@@ -310,7 +312,7 @@ func (a *App) hSites(w http.ResponseWriter, r *http.Request) {
 	c := a.store.Get()
 	g := c.group(r.URL.Query().Get("group"))
 	if g == nil {
-		writeErr(w, 404, errors.New("нет такой группы"))
+		writeErr(w, 404, errf("нет такого узла"))
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -357,7 +359,7 @@ func (a *App) hPin(w http.ResponseWriter, r *http.Request) {
 	_, err := a.store.Update(func(c *Config) error {
 		g := c.group(name)
 		if g == nil {
-			return fmt.Errorf("нет группы %q", name)
+			return errf("нет узла %q", name)
 		}
 		g.Pinned = in.Outlet
 		return nil
@@ -367,9 +369,9 @@ func (a *App) hPin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if in.Outlet == "" {
-		a.logf("info", "группа %s: закрепление снято, выбор автоматический", name)
+		a.logf("info", "узел %s: закрепление снято, выбор автоматический", name)
 	} else {
-		a.logf("info", "группа %s: вручную закреплён выход %s", name, in.Outlet)
+		a.logf("info", "узел %s: вручную закреплено подключение %s", name, in.Outlet)
 	}
 	a.evaluate()
 	writeJSON(w, map[string]any{"ok": true})

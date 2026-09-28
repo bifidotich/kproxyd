@@ -694,7 +694,9 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
 .res-table tr.grp td { background: var(--dashboard-background); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-gray); padding: 6px 8px; }
 .res-table .dom { font-weight: 500; overflow-wrap: anywhere; }
 .res-table .sub { font-size: 11px; color: var(--text-gray); display: block; }
-.res-table .ndw-chip { white-space: nowrap; }
+.res-table .ndw-chip { white-space: normal; max-width: 170px; overflow-wrap: anywhere; }
+/* кнопки действий не уезжают за край, когда таблица шире экрана */
+.res-table td.acts, .res-table th:last-child { position: sticky; right: 0; background: var(--card-background); }
 .cell { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font-size: 12px; white-space: nowrap; border: 1px solid transparent; font-variant-numeric: tabular-nums; }
 .cell.ok { color: var(--status-success-text); background: var(--status-success-background); border-color: var(--status-success-border); }
 .cell.fail { color: var(--status-warning-text); background: var(--status-warning-background); border-color: var(--status-warning-border); }
@@ -734,6 +736,9 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
   .list__row.rule { grid-template-columns: minmax(0, 1fr) 120px 28px; }
   .list__row.rule .arrow { display: none; }
   .dlg-tabs button { padding: 8px 9px; }
+  .table-wrap { margin: 0; padding: 0; }
+  .res-table td.acts { box-shadow: -6px 0 6px -6px rgba(0, 0, 0, .25); }
+  .res-table .ndw-chip { max-width: 120px; }
 }
 
 @media (max-width: 768px) {
@@ -787,7 +792,7 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
       <!-- Action Buttons -->
       <button class="ndw-btn ndw-btn--outline ndw-btn--small" id="bProbe">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-        <span id="txtProbe">Diagnostics</span>
+        <span id="txtProbe">Check connections</span>
       </button>
 
       <button class="ndw-btn ndw-btn--outline ndw-btn--small" id="bSync" title="Refresh Keenetic status">
@@ -927,9 +932,9 @@ const i18n = {
     navSettings: "Settings",
     navRouting: "ROUTING",
     navSystem: "SYSTEM",
-    probeBtn: "Diagnostics",
+    probeBtn: "Check connections",
     syncBtnTitle: "Refresh Keenetic status",
-    probingToast: "Diagnostics probe triggered",
+    probingToast: "Connection check started",
     refreshingToast: "Refreshing Keenetic configuration",
     loading: "loading…",
     noConnection: "No connection to kproxyd: ",
@@ -938,10 +943,10 @@ const i18n = {
     closeBtn: "Close",
     
     // Nodes (formerly Groups)
-    noGroupsYet: "No routing nodes configured. A node is a local SOCKS5 proxy service: Keenetic directs domain list traffic to it, and kproxyd forwards connections to the optimal active uplink.",
+    noGroupsYet: "No routing nodes configured. A node is a local SOCKS5 proxy service: Keenetic directs domain list traffic to it, and kproxyd forwards sessions to the best working connection.",
     createGroupBtn: "Create Node",
     addOutletsFirstHint: "Add connections in the «Connections» tab first.",
-    currentActive: "Active uplink:",
+    currentActive: "Active connection:",
     noActiveOutlets: "no active connections",
     editBtn: "Edit",
     pinBtn: "Pin",
@@ -949,7 +954,7 @@ const i18n = {
     unpinHint: "Unpin connection",
     restoreAutoBtn: "Restore automatic failover",
     autoRestored: "Automatic selection enabled",
-    pinnedToast: o => `Pinned uplink: ${o}`,
+    pinnedToast: o => `Pinned connection: ${o}`,
     manualPolicy: "manual",
     fastestPolicy: "lowest latency (RTT)",
     priorityPolicy: "priority order",
@@ -972,7 +977,7 @@ const i18n = {
     noOutletsYet: "No connections configured. A connection is a network interface or tunnel (e.g. Wireguard0) used by kproxyd for egress traffic.",
     available: "online",
     unavailable: "offline",
-    disabledNotProbed: "disabled, diagnostics stopped",
+    disabledNotProbed: "disabled, not checked",
     disabled: "disabled",
     stableFor: "uptime ",
     sparkAria: "Round-trip time (RTT) history",
@@ -980,11 +985,11 @@ const i18n = {
     lblKeenetic: "Keenetic status",
     connected: "connected",
     notConnected: "disconnected",
-    lblHandshake: "Handshake",
+    lblHandshake: "Last handshake",
     lblConnections: "Active sessions",
     lblInGroups: "In nodes",
     none: "none",
-    lblLastCheck: "Last RTT check",
+    lblLastCheck: "Last check",
     agoSuffix: "ago",
     unconfiguredTunnelsTitle: "Connections",
     addBtn: "+ Add",
@@ -1005,16 +1010,16 @@ const i18n = {
     sectionLang: "Interface Language",
     lblLang: "Select Language",
     langHint: "Changes interface language across all sections and saves preference in browser.",
-    sectionProbe: "Connection Diagnostics & Health Probing",
-    lblProbeUrl: "Health Check Target URL",
-    lblProbeDns: "Probe DNS Resolver",
-    probeDnsHint: "Queried through each tunnel to evaluate latency and resolve SOCKS5 targets. Value <code>system</code> uses the router's DNS resolver.",
-    lblInterval: "Probe Interval, sec",
-    lblTimeout: "Probe Timeout, ms",
-    lblFail: "Failure Threshold (probes)",
-    lblRecover: "Recovery Threshold (probes)",
-    lblReturn: "Failback Hold-down Timer, sec",
-    returnHint: "Prevents flapping when the primary uplink is fluctuating.",
+    sectionProbe: "Connection Checks",
+    lblProbeUrl: "Check URL",
+    lblProbeDns: "Check DNS Server",
+    probeDnsHint: "Queried through each tunnel for checks and to resolve SOCKS5 targets. Value <code>system</code> uses the router's DNS resolver.",
+    lblInterval: "Check Interval, sec",
+    lblTimeout: "Check Timeout, ms",
+    lblFail: "Failed Checks to Mark Down",
+    lblRecover: "Successful Checks to Mark Up",
+    lblReturn: "Delay Before Returning to Priority Connection, sec",
+    returnHint: "Prevents flapping when the primary connection is unstable.",
     sectionWeb: "Web Interface Access",
     lblUser: "Username",
     lblPass: "New Password",
@@ -1051,8 +1056,8 @@ const i18n = {
     optIsp: "Direct pass-through via ISP",
     lblMaxConns: "Max Concurrent Sessions",
     maxConnsHint: "Sessions exceeding this limit are rejected to safeguard router memory (~100 KB per session).",
-    lblKill: "Reset open sessions on uplink switch",
-    killHint: "Active sessions through a dropped uplink are immediately terminated so clients reconnect over the new route.",
+    lblKill: "Reset open sessions when the connection switches",
+    killHint: "Sessions through a dropped connection are always terminated so clients reconnect through a working one; with this option, sessions are also reset on any switch.",
     delGroupBtn: "Delete Node",
     cancelBtn: "Cancel",
     saveBtn: "Save",
@@ -1083,7 +1088,7 @@ const i18n = {
     sitesSection: "Resources",
     allResources: "All resources →",
     miniLegend: "Squares — node connections in order, outlined — the one in use now.",
-    miniFoot: (n, alt, down) => n ? `From traffic: ${n} sites` + (alt ? ` · ${alt} via another connection` : "") + (down ? ` · ${down} unreachable` : "") + (!alt && !down ? " · all working" : "") : "No sites from traffic yet",
+    miniFoot: (n, alt, down) => n ? `From traffic: ${plural(n, W_SITES)}` + (alt ? ` · via another connection: ${alt}` : "") + (down ? ` · unreachable: ${down}` : "") + (!alt && !down ? " · all working" : "") : "No sites from traffic yet",
     stOk: "working",
     stAlt: v => `via ${v}`,
     stDown: "unreachable everywhere",
@@ -1091,7 +1096,7 @@ const i18n = {
     stNone: "no data",
     stNoRoute: "no connection was available",
     stIsp: "via ISP (all connections down)",
-    noRouteTitle: (n, isp, a) => `Connections while the node had no working connection: ${n}` + (isp ? `, of them via ISP: ${isp}` : "") + ` · last ${a}`,
+    noRouteTitle: (n, isp, a) => `Sessions while the node had no working connection: ${n}` + (isp ? `, of them via ISP: ${isp}` : "") + ` · last ${a}`,
     cellNone: "no data",
     cellOff: "connection down",
     errCodes: { timeout: "no answer", reset: "reset", refused: "refused", closed: "closed", unreach: "no route", dns: "DNS error", slow: "slow", early: "cut off", alert: "TLS alert", proto: "not TLS", stub: "block page", forbidden: "forbidden", error: "error" },
@@ -1106,7 +1111,7 @@ const i18n = {
     trafficGroup: n => `From traffic · ${n}`,
     lightCheck: "light check",
     deepCheck: "deep check",
-    connsSub: (n, a) => `${n} connections · ${a}`,
+    connsSub: (n, a) => `${plural(n, W_SESS)} · ${a}`,
     ipSub: "domain unknown (IP address)",
     colResource: "Resource",
     colStatus: "Status",
@@ -1115,7 +1120,7 @@ const i18n = {
     checkStarted: "Check started",
     searchPh: "Search domain",
     showTraffic: "Show domains from traffic",
-    statRate: "new connections per second",
+    statRate: "new sessions per second",
     statHits: "cache hits",
     statHedges: "backup attempts per hour",
     statEntries: "cache entries",
@@ -1127,10 +1132,10 @@ const i18n = {
     legendP: "kproxyd check",
     legendT: "real traffic",
     legendHover: "Hover a cell for details",
-    legendMs: "ms — time to the site's first answer; node and connection cards show the full check (DNS, connection, TLS), so they are higher",
+    legendMs: "ms — time to the site's first answer; node and connection cards show the full check (DNS, TCP, TLS), so they are higher",
     firstAnswer: v => `first answer in ${v}`,
     probeRtt: v => `check ${v}`,
-    probeRttTitle: "Check latency through the tunnel: DNS, connection and TLS handshake to the check URL. Sites usually answer faster — see Resources",
+    probeRttTitle: "Check latency through the tunnel: DNS, TCP and TLS handshake to the check URL. Sites usually answer faster — see Resources",
     actWatch: "Watch",
     actRule: "Pin with a rule",
     actReset: "Reset selection",
@@ -1144,11 +1149,11 @@ const i18n = {
     tabWatch: "Checks",
     tabRules: "Rules",
     lblSniff: "Pick a connection for each site",
-    sniffHint: "kproxyd reads the domain from the start of the connection (HTTPS and HTTP, ports 443 and 80) and remembers which connection opens the site.",
+    sniffHint: "kproxyd reads the domain from the start of each session (HTTPS and HTTP, ports 443 and 80) and remembers which connection opens the site.",
     lblFailover: "When to move to the next connection",
     optFailOff: "Never — always the node's active connection",
     optFailConnect: "Could not connect",
-    optFailTls: "Server did not answer or reset the connection (recommended)",
+    optFailTls: "Server did not answer or reset the session (recommended)",
     lblWait: "Wait for the server, ms",
     waitHint: "A backup attempt starts earlier — when the answer takes 3× longer than usual for the site.",
     lblCache: "Remember the choice, min",
@@ -1162,7 +1167,7 @@ const i18n = {
     addWatchBtn: "+ Add resource",
     lblWatchInt: "Check interval",
     lblWatchFails: "Failures in a row to mark as not working",
-    watchTypesHint: "<b>Light</b> — connection and TLS hello, no encryption on the router: catches blocking by address and domain. <b>Deep</b> — full HTTPS request: catches block pages and 403, but is heavier for the router CPU.",
+    watchTypesHint: "<b>Light</b> — TCP and TLS hello, no encryption on the router: catches blocking by address and domain. <b>Deep</b> — full HTTPS request: catches block pages and 403, but is heavier for the router CPU.",
     rulesIntro: "A rule beats automatic selection. A domain includes all its subdomains.",
     rulesNeedSniff: "Rules work when per-site selection is on (Selection tab).",
     addRuleBtn: "+ Add rule",
@@ -1179,9 +1184,9 @@ const i18n = {
     navSettings: "Настройки",
     navRouting: "МАРШРУТИЗАЦИЯ",
     navSystem: "СИСТЕМА",
-    probeBtn: "Диагностика",
+    probeBtn: "Проверить подключения",
     syncBtnTitle: "Обновить данные Keenetic",
-    probingToast: "Диагностика запущена",
+    probingToast: "Проверка подключений запущена",
     refreshingToast: "Конфигурация Keenetic перечитывается",
     loading: "загрузка…",
     noConnection: "Нет связи с kproxyd: ",
@@ -1190,7 +1195,7 @@ const i18n = {
     closeBtn: "Закрыть",
     
     // Nodes (formerly Groups)
-    noGroupsYet: "Узлы маршрутизации не настроены. Узел — это локальный SOCKS5-прокси kproxyd: Keenetic направляет в него списки доменов, а kproxyd перенаправляет трафик в оптимальное активное подключение.",
+    noGroupsYet: "Узлы маршрутизации не настроены. Узел — это локальный SOCKS5-прокси kproxyd: Keenetic направляет в него списки доменов, а kproxyd направляет соединения через лучшее рабочее подключение.",
     createGroupBtn: "Создать узел",
     addOutletsFirstHint: "Сначала добавьте подключения на вкладке «Подключения».",
     currentActive: "Активное подключение:",
@@ -1205,7 +1210,7 @@ const i18n = {
     manualPolicy: "ручной выбор",
     fastestPolicy: "минимальная задержка (RTT)",
     priorityPolicy: "приоритет по списку",
-    socksInfo: (l, pol, c, m) => `SOCKS5: ${l} · Политика: ${pol} · Сессии: ${c}/${m}`,
+    socksInfo: (l, pol, c, m) => `SOCKS5: ${l} · Политика: ${pol} · Соединения: ${c}/${m}`,
     noLists: "в Keenetic к этому узлу не привязан ни один список доменов",
     socksNotRunning: "Ошибка слушателя SOCKS5: ",
     newGroupBtn: "+ Новый узел",
@@ -1224,19 +1229,19 @@ const i18n = {
     noOutletsYet: "Подключения не настроены. Подключение — это сетевой интерфейс роутера (например, Wireguard0), через который kproxyd отправляет исходящий трафик.",
     available: "доступно",
     unavailable: "недоступно",
-    disabledNotProbed: "отключено, диагностика выключена",
-    disabled: "отключено",
+    disabledNotProbed: "выключено, не проверяется",
+    disabled: "выключено",
     stableFor: "аптайм ",
     sparkAria: "График задержки (RTT)",
     lblInterface: "Интерфейс",
     lblKeenetic: "Статус Keenetic",
     connected: "подключено",
     notConnected: "не подключено",
-    lblHandshake: "Последний handshake",
-    lblConnections: "Активных сессий",
+    lblHandshake: "Последнее рукопожатие",
+    lblConnections: "Активных соединений",
     lblInGroups: "В узлах",
     none: "не используется",
-    lblLastCheck: "Диагностика RTT",
+    lblLastCheck: "Последняя проверка",
     agoSuffix: "назад",
     unconfiguredTunnelsTitle: "Подключения",
     addBtn: "+ Добавить",
@@ -1257,16 +1262,16 @@ const i18n = {
     sectionLang: "Язык интерфейса",
     lblLang: "Выберите язык",
     langHint: "Переключает язык интерфейса и сохраняет выбор в браузере.",
-    sectionProbe: "Параметры диагностики подключений",
-    lblProbeUrl: "Адрес для проверки доступности",
-    lblProbeDns: "DNS-сервер диагностики",
-    probeDnsHint: "Опрашивается через каждое подключение для измерения задержки и резолвинга в SOCKS5. Значение <code>system</code> использует DNS роутера.",
-    lblInterval: "Интервал зондирования, с",
-    lblTimeout: "Таймаут зондирования, мс",
-    lblFail: "Порог фиксации отказа (число сбоев)",
-    lblRecover: "Порог восстановления (число успехов)",
-    lblReturn: "Задержка возврата на приоритетный линк, с",
-    returnHint: "Предотвращает частые переключения (flapping) при нестабильной связи на основном канале.",
+    sectionProbe: "Проверка подключений",
+    lblProbeUrl: "Адрес для проверки",
+    lblProbeDns: "DNS-сервер проверки",
+    probeDnsHint: "Опрашивается через каждое подключение при проверке и для имён в SOCKS5-запросах. Значение <code>system</code> — DNS роутера.",
+    lblInterval: "Интервал проверки, с",
+    lblTimeout: "Таймаут проверки, мс",
+    lblFail: "Неудач подряд до «недоступно»",
+    lblRecover: "Успехов подряд до «доступно»",
+    lblReturn: "Задержка возврата на приоритетное подключение, с",
+    returnHint: "Предотвращает частые переключения, когда основное подключение работает нестабильно.",
     sectionWeb: "Доступ к веб-интерфейсу",
     lblUser: "Логин",
     lblPass: "Новый пароль",
@@ -1301,10 +1306,10 @@ const i18n = {
     lblAllDown: "Действие при недоступности всех подключений",
     optReject: "Блокировать (reject — предотвратить утечку к провайдеру)",
     optIsp: "Пропускать напрямую через провайдера (direct ISP)",
-    lblMaxConns: "Лимит одновременных сессий",
-    maxConnsHint: "Новые сессии сверх предела отклоняются для защиты памяти роутера (~100 КБ на сессию).",
-    lblKill: "Сброс открытых сессий при переключении линка",
-    killHint: "При переключении сессии через упавший линк принудительно разрываются для мгновенного реконнекта клиентов через резерв.",
+    lblMaxConns: "Лимит одновременных соединений",
+    maxConnsHint: "Новые соединения сверх предела отклоняются для защиты памяти роутера (~100 КБ на соединение).",
+    lblKill: "Сбрасывать открытые соединения при переключении подключения",
+    killHint: "Соединения через упавшее подключение разрываются всегда, чтобы клиенты переподключились через рабочее; с этой настройкой — при любом переключении.",
     delGroupBtn: "Удалить узел",
     cancelBtn: "Отмена",
     saveBtn: "Сохранить",
@@ -1335,7 +1340,7 @@ const i18n = {
     sitesSection: "Ресурсы",
     allResources: "Все ресурсы →",
     miniLegend: "Квадраты — подключения узла по порядку, в рамке — выбранное сейчас.",
-    miniFoot: (n, alt, down) => n ? `Из трафика: ${n} сайтов` + (alt ? ` · ${alt} через другое подключение` : "") + (down ? ` · ${down} недоступно` : "") + (!alt && !down ? " · всё работает" : "") : "Сайтов из трафика пока нет",
+    miniFoot: (n, alt, down) => n ? `Из трафика: ${plural(n, W_SITES)}` + (alt ? ` · через другое подключение: ${alt}` : "") + (down ? ` · недоступны: ${down}` : "") + (!alt && !down ? " · всё работает" : "") : "Сайтов из трафика пока нет",
     stOk: "работает",
     stAlt: v => `через ${v}`,
     stDown: "недоступен везде",
@@ -1358,7 +1363,7 @@ const i18n = {
     trafficGroup: n => `Из трафика · ${n}`,
     lightCheck: "лёгкая проверка",
     deepCheck: "глубокая проверка",
-    connsSub: (n, a) => `соединений: ${n} · ${a}`,
+    connsSub: (n, a) => `${plural(n, W_SESS)} · ${a}`,
     ipSub: "домен неизвестен (IP-адрес)",
     colResource: "Ресурс",
     colStatus: "Статус",
@@ -1443,6 +1448,18 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clone = o => JSON.parse(JSON.stringify(o));
 const t = k => i18n[currentLang][k];
+// текст с сервера (журнал, причины, ошибки): русский в поле key, английский — в key + "_en"
+const srv = (o, key) => (currentLang === "ru" ? o[key] : (o[key + "_en"] || o[key])) || "";
+// «1 сайт», «2 сайта», «5 сайтов» / «1 site», «2 sites»
+function plural(n, forms){
+  const f = forms[currentLang] || forms.en;
+  if(currentLang !== "ru") return `${n} ${n === 1 ? f[0] : f[1]}`;
+  const m10 = n % 10, m100 = n % 100;
+  const i = m10 === 1 && m100 !== 11 ? 0 : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 1 : 2;
+  return `${n} ${f[i]}`;
+}
+const W_SITES = { en: ["site", "sites"], ru: ["сайт", "сайта", "сайтов"] };
+const W_SESS = { en: ["session", "sessions"], ru: ["соединение", "соединения", "соединений"] };
 
 function toast(msg){
   const el = $("#toast");
@@ -1585,7 +1602,7 @@ async function api(method, path, body){
     if(r.status === 401 && path !== "/api/login") {
       showLoginDialog();
     }
-    const err = new Error(j.error || ("HTTP " + r.status));
+    const err = new Error(srv(j, "error") || ("HTTP " + r.status));
     err.status = r.status;
     throw err;
   }
@@ -1666,7 +1683,7 @@ function render(){
   const b = $("#headerBadge");
   if(S.k_error) {
     b.classList.add("err");
-    $("#sum").textContent = t("sumStatus")(up, on) + " · " + t("keeneticErr") + S.k_error;
+    $("#sum").textContent = t("sumStatus")(up, on) + " · " + t("keeneticErr") + srv(S, "k_error");
   } else {
     b.classList.remove("err");
     $("#sum").textContent = t("sumStatus")(up, on);
@@ -1698,6 +1715,7 @@ function renderGroups(){
     return;
   }
 
+  let legendShown = false; // пояснение к квадратам «Ресурсов» — только в первой карточке, где они есть
   const cards = cfg.groups.map(g => {
     const st = S.groups.find(x => x.name === g.name) || {};
     const act = st.active;
@@ -1725,14 +1743,14 @@ function renderGroups(){
         <button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="editGroup" data-g="${esc(g.name)}">${esc(t("editBtn"))}</button>
       </div>
       <div class="headline ${act ? "" : "none"}">
-        ${esc(t("currentActive"))} <b>${esc(act || t("noActiveOutlets"))}</b>${st.since && act ? ` · ${formatDuration(st.since)}` : ""}${st.reason ? ` · ${esc(st.reason)}` : ""}
+        ${esc(t("currentActive"))} <b>${esc(act || t("noActiveOutlets"))}</b>${st.since && act ? ` · ${formatDuration(st.since)}` : ""}${st.reason ? ` · ${esc(srv(st, "reason"))}` : ""}
       </div>
       <ol class="route-track">${stops}</ol>
       <div class="meta" style="margin-top:6px;">${esc(t("socksInfo")(g.listen, pol, st.conns || 0, g.max_conns || 256))}</div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">${lists}</div>
-      ${st.sites ? siteMini(g, st.sites) : ""}
+      ${st.sites ? siteMini(g, st.sites, !legendShown && st.sites.rows.length > 0 && (legendShown = true)) : ""}
       ${st.listen_err ? `<div class="err" style="margin-top:6px;">${esc(t("socksNotRunning"))}${esc(st.listen_err)}</div>` : ""}
-      ${st.keenetic_msg ? `<div class="${st.keenetic_ok ? "meta" : "err"}" style="margin-top:6px">Keenetic: ${esc(st.keenetic_msg)}</div>` : ""}
+      ${st.keenetic_msg ? `<div class="${st.keenetic_ok ? "meta" : "err"}" style="margin-top:6px">Keenetic: ${esc(srv(st, "keenetic_msg"))}</div>` : ""}
       ${st.keenetic_ok ? "" : setupHelp(g)}
       ${g.pinned ? `<div class="foot"><button class="ndw-btn ndw-btn--outline ndw-btn--small" data-act="pin" data-g="${esc(g.name)}" data-o="">${esc(t("restoreAutoBtn"))}</button></div>` : ""}
     </article>`;
@@ -2189,7 +2207,7 @@ function siteCell(name, c){
 }
 
 // «Ресурсы» в карточке узла: отслеживаемые и до трёх проблемных сайтов из трафика
-function siteMini(g, sum){
+function siteMini(g, sum, legend){
   const rows = sum.rows.map(r => {
     const [txt, cls] = siteStatus(r);
     const sq = g.members.map(m => {
@@ -2199,7 +2217,7 @@ function siteMini(g, sum){
     }).join("");
     return `<div class="res-mini__row"><span class="res-mini__name" title="${esc(r.site)}">${r.watched ? "★ " : ""}${esc(r.site)}</span><span>${sq}</span><span class="res-mini__st ${cls}" title="${esc(txt)}">${esc(txt)}</span></div>`;
   }).join("");
-  const foot = [rows ? esc(t("miniLegend")) : "", g.sniff ? esc(t("miniFoot")(sum.total, sum.alt, sum.down)) : ""].filter(Boolean).join("<br>");
+  const foot = [legend ? esc(t("miniLegend")) : "", g.sniff ? esc(t("miniFoot")(sum.total, sum.alt, sum.down)) : ""].filter(Boolean).join("<br>");
   return `<div class="section-label"><span>${esc(t("sitesSection"))}</span><button type="button" class="link-btn" data-act="gotoSites" data-g="${esc(g.name)}">${esc(t("allResources"))}</button></div>
     ${rows ? `<div class="res-mini">${rows}</div>` : ""}
     ${foot ? `<div class="res-mini__foot">${foot}</div>` : ""}`;
@@ -2460,7 +2478,7 @@ function renderOutlets(){
         </div>
         <div class="wan-property">
           <span class="wan-property__label">${esc(t("lblHandshake"))}</span>
-          <span class="wan-property__value">${esc(o.handshake || "—")}</span>
+          <span class="wan-property__value">${esc(handshakeText(o.handshake))}</span>
         </div>
         <div class="wan-property">
           <span class="wan-property__label">${esc(t("lblInGroups"))}</span>
@@ -2475,7 +2493,7 @@ function renderOutlets(){
           <span class="wan-property__value">${ago(o.last_check)}</span>
         </div>
       </div>
-      ${o.last_err ? `<div class="err" style="margin-top:6px;">${esc(o.last_err)}</div>` : ""}
+      ${o.last_err ? `<div class="err" style="margin-top:6px;">${esc(srv(o, "last_err"))}</div>` : ""}
     </article>`;
   }).join("");
 
@@ -2512,6 +2530,14 @@ function renderOutlets(){
     </div>` : "";
 
   el.innerHTML = (cfg.outlets.length ? `<div class="grid">${cards}</div>` : `<div class="empty">${esc(t("noOutletsYet"))}</div>`) + add;
+}
+
+// Keenetic отдаёт время с последнего рукопожатия WireGuard числом секунд; в других прошивках
+// формат бывает иным — тогда показываем как есть
+function handshakeText(v){
+  if(v === undefined || v === null || v === "") return "—";
+  if(!/^\d+$/.test(String(v))) return String(v);
+  return ago(new Date(Date.now() - (+v) * 1000).toISOString());
 }
 
 async function addOutlet(id, desc){
@@ -2602,7 +2628,7 @@ function renderLog(){
     ? `<div class="card" style="padding:0; overflow:hidden;"><table class="event-table"><tbody>${ev.map(e => `<tr>
         <td class="event-time" title="${esc(e.t)}">${new Date(e.t).toLocaleTimeString()}</td>
         <td style="width:60px;"><span class="ndw-chip ${e.level === "error" || e.level === "warn" ? "ndw-chip--danger" : "ndw-chip--success"}" style="padding:1px 6px;">${esc(e.level).toUpperCase()}</span></td>
-        <td>${esc(e.msg)}</td>
+        <td>${esc(srv(e, "msg"))}</td>
       </tr>`).join("")}</tbody></table></div>`
     : `<div class="empty">${esc(t("noEventsYet"))}</div>`;
 }
