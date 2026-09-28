@@ -124,7 +124,7 @@ func (a *App) watchGroup(c *Config, g *GroupCfg) {
 		}
 		for _, r := range results[i] {
 			if r.err == "" {
-				a.sites.success(g.Name, site, r.outlet, "p", r.rtt, ttl, false)
+				a.sites.success(g.Name, site, r.outlet, "p", r.rtt, ttl, false, false)
 			} else {
 				// не открылось ни через одно подключение — виноват ресурс, туннели не отмечаем
 				a.sites.failure(g.Name, site, r.outlet, "p", r.err, !allFail, ttl, g.WatchFails)

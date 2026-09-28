@@ -16,6 +16,7 @@ const (
 	suspectFails  = 3                // значит, дело в туннеле: ставим его в конец очереди
 	suspectFor    = time.Minute      // для всех сайтов и запускаем внеочередную проверку
 	hedgeMin      = 500 * time.Millisecond
+	slowLimit     = 3               // столько раз подряд подключение отвечает позже запасного — это уже неудача
 	earlyWindow   = 5 * time.Second // обрыв сервером в первые секунды при почти пустом ответе —
 	earlyBytes    = 16 << 10        // неудача (так режут соединения некоторые DPI)
 )
@@ -29,7 +30,9 @@ type siteOutlet struct {
 	RTT      float64   `json:"rtt"`           // время до первого ответа сервера, мс, сглаженное
 	Src      string    `json:"src"`           // последний результат: t — из трафика, p — проверка kproxyd
 	BadUntil time.Time `json:"bad_until"`     // до этого времени сайт через подключение не пробуем первым
+	Slow     int       `json:"slow"`          // сколько раз ответило позже запасной попытки
 	pfails   int       // неудачи проверок подряд
+	slowRun  int       // опоздания подряд
 }
 
 func (o *siteOutlet) lastOK() bool { return o.LastOK.After(o.LastFail) }
@@ -165,8 +168,8 @@ func trimHour(c *siteCounters, now time.Time) {
 	c.hedges = c.hedges[i:]
 }
 
-// success — сайт открылся через подключение. Из трафика (src "t") это ещё и выбор на ttl.
-func (s *SiteCache) success(group, site, outlet, src string, rtt time.Duration, ttl time.Duration, failover bool) {
+// success — сайт открылся через подключение. Из трафика (src "t") с choose это ещё и выбор на ttl.
+func (s *SiteCache) success(group, site, outlet, src string, rtt time.Duration, ttl time.Duration, failover, choose bool) {
 	now := time.Now()
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -186,7 +189,12 @@ func (s *SiteCache) success(group, site, outlet, src string, rtt time.Duration, 
 	}
 	if src == "t" {
 		o.BadUntil = time.Time{}
-		e.chosen, e.chosenUntil = outlet, now.Add(ttl)
+		o.slowRun = 0
+		if choose {
+			e.chosen, e.chosenUntil = outlet, now.Add(ttl)
+		} else if e.chosen != "" && now.Before(e.chosenUntil) {
+			e.chosenUntil = now.Add(ttl) // прежний выбор остаётся в силе
+		}
 		delete(s.suspect, outlet)
 		delete(s.fails, outlet)
 		if failover {
@@ -201,9 +209,29 @@ func (s *SiteCache) success(group, site, outlet, src string, rtt time.Duration, 
 // соединения шли сначала через другие подключения (не ставим, если сайт не открылся нигде —
 // тогда виноват он сам). Возвращает true, если подключение только что стало подозрительным.
 func (s *SiteCache) failure(group, site, outlet, src, code string, mark bool, ttl time.Duration, probeFails int) (suspect bool) {
-	now := time.Now()
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.failLocked(group, site, outlet, src, code, mark, ttl, probeFails)
+}
+
+// slow — подключение не ответило раньше запасной попытки через другое. Разовое опоздание —
+// не повод уводить сайт на другой туннель (и менять IP выхода): это неудача, только если
+// повторилось slowLimit раз подряд. failed — как раз этот случай.
+func (s *SiteCache) slow(group, site, outlet string, ttl time.Duration) (failed, suspect bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	o := s.entry(group, site, "", time.Now()).outlet(outlet)
+	o.Slow++
+	o.slowRun++
+	if o.slowRun < slowLimit {
+		return false, false
+	}
+	o.slowRun = 0
+	return true, s.failLocked(group, site, outlet, "t", "slow", true, ttl, 0)
+}
+
+func (s *SiteCache) failLocked(group, site, outlet, src, code string, mark bool, ttl time.Duration, probeFails int) (suspect bool) {
+	now := time.Now()
 	e := s.entry(group, site, "", now)
 	o := e.outlet(outlet)
 	o.Fail++
@@ -314,6 +342,7 @@ type SiteCell struct {
 	At       time.Time `json:"at"`
 	OK       int       `json:"ok"`
 	Fail     int       `json:"fail"`
+	Slow     int       `json:"slow,omitempty"` // ответов позже запасной попытки
 	Chosen   bool      `json:"chosen,omitempty"`
 	Bad      bool      `json:"bad,omitempty"`
 	Disabled bool      `json:"disabled,omitempty"` // подключение сейчас недоступно
@@ -370,7 +399,7 @@ func (v siteView) row(e *siteEntry, site string, now time.Time) SiteRow {
 		c := SiteCell{State: "none", Disabled: !v.healthy[m]}
 		if e != nil {
 			if o := e.per[m]; o != nil && (o.OK > 0 || o.Fail > 0) {
-				c.OK, c.Fail, c.Src, c.RTT = o.OK, o.Fail, o.Src, int(o.RTT+0.5)
+				c.OK, c.Fail, c.Slow, c.Src, c.RTT = o.OK, o.Fail, o.Slow, o.Src, int(o.RTT+0.5)
 				c.Bad = now.Before(o.BadUntil)
 				if o.lastOK() {
 					c.State, c.At = "ok", o.LastOK

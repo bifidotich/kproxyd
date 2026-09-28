@@ -35,7 +35,12 @@
   --status-warning-border: #ffded9;
   --status-warning-background: #ffece9;
   --indicator-offline: #de3d3d;
-  
+
+  --status-caution-text: #8a5a00;
+  --status-caution-border: #f3dfa8;
+  --status-caution-background: #fff7e0;
+  --indicator-caution: #e0a100;
+
   --status-special-text: #6355d8;
   --status-special-border: #e2def8;
   --status-special-background: #f2f0fc;
@@ -87,7 +92,12 @@ html.dark {
   --status-warning-border: #742a2a;
   --status-warning-background: #3b1d22;
   --indicator-offline: #f87171;
-  
+
+  --status-caution-text: #f6c453;
+  --status-caution-border: #6b5518;
+  --status-caution-background: #33290f;
+  --indicator-caution: #f6c453;
+
   --status-special-text: #a599fc;
   --status-special-border: #3b3367;
   --status-special-background: #201c3d;
@@ -660,6 +670,7 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
 .sq { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 3px; background: var(--stroke); }
 .sq.ok { background: var(--indicator-online); }
 .sq.fail { background: var(--indicator-offline); }
+.sq.slow { background: var(--indicator-caution); }
 .sq.sel { box-shadow: 0 0 0 2px var(--card-background), 0 0 0 3.5px var(--primary-color); }
 .res-mini__st { font-size: 12px; color: var(--text-gray); min-width: 100px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 .res-mini__st.bad { color: var(--status-warning-text); }
@@ -687,6 +698,7 @@ html.dark #toast { background: #2e3d57; color: #f1f5f9; }
 .cell { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font-size: 12px; white-space: nowrap; border: 1px solid transparent; font-variant-numeric: tabular-nums; }
 .cell.ok { color: var(--status-success-text); background: var(--status-success-background); border-color: var(--status-success-border); }
 .cell.fail { color: var(--status-warning-text); background: var(--status-warning-background); border-color: var(--status-warning-border); }
+.cell.slow { color: var(--status-caution-text); background: var(--status-caution-background); border-color: var(--status-caution-border); }
 .cell.none { color: var(--help-text); }
 .cell.sel { box-shadow: 0 0 0 1.5px var(--primary-color); }
 .src { font-size: 10px; font-weight: 700; opacity: .7; }
@@ -1085,6 +1097,7 @@ const i18n = {
     srcLetterT: "T",
     srcLetterP: "C",
     okFail: (ok, fail) => `successes ${ok}, failures ${fail}`,
+    slowNote: n => `answered later than the backup attempt: ${n}`,
     badNote: "tried last for now",
     watchedGroup: "Watched",
     trafficGroup: n => `From traffic · ${n}`,
@@ -1329,6 +1342,7 @@ const i18n = {
     srcLetterT: "Т",
     srcLetterP: "П",
     okFail: (ok, fail) => `успехов ${ok}, неудач ${fail}`,
+    slowNote: n => `ответило позже запасной попытки: ${n}`,
     badNote: "пока пробуется последним",
     watchedGroup: "Отслеживаемые",
     trafficGroup: n => `Из трафика · ${n}`,
@@ -2127,12 +2141,17 @@ function siteChip(r){
   return `<span class="ndw-chip ndw-chip--${kind}">${dot}${esc(txt)}</span>`;
 }
 
+// ok | fail | slow | none; slow — подключение раз за разом отвечало позже запасного, но не отказало
+const cellKind = c => !c.state || c.state === "none" ? "none" : c.state === "fail" && c.err === "slow" ? "slow" : c.state;
+
 function cellTitle(name, c){
   const parts = [name];
   if(c.disabled) parts.push(t("cellOff"));
   if(c.state && c.state !== "none"){
-    parts.push((c.state === "ok" ? "✓ " + ms(c.rtt) : "✗ " + errText(c.err)) + " · " + (c.src === "p" ? t("srcP") : t("srcT")) + " · " + ago(c.at));
+    const k = cellKind(c);
+    parts.push((k === "ok" ? "✓ " + ms(c.rtt) : (k === "slow" ? "⏱ " : "✗ ") + errText(c.err)) + " · " + (c.src === "p" ? t("srcP") : t("srcT")) + " · " + ago(c.at));
     parts.push(t("okFail")(c.ok, c.fail));
+    if(c.slow) parts.push(t("slowNote")(c.slow));
     if(c.bad) parts.push(t("badNote"));
   }
   return parts.join("\n");
@@ -2140,12 +2159,12 @@ function cellTitle(name, c){
 
 function siteCell(name, c){
   const title = esc(cellTitle(name, c));
-  if(!c.state || c.state === "none") return `<span class="cell none" title="${title}">— ${esc(c.disabled ? t("cellOff") : t("cellNone"))}</span>`;
+  const k = cellKind(c);
+  if(k === "none") return `<span class="cell none" title="${title}">— ${esc(c.disabled ? t("cellOff") : t("cellNone"))}</span>`;
   const src = `<span class="src">${esc(c.src === "p" ? t("srcLetterP") : t("srcLetterT"))}</span>`;
   const sel = c.chosen ? " sel" : "";
-  return c.state === "ok"
-    ? `<span class="cell ok${sel}" title="${title}">✓ ${ms(c.rtt)} ${src}</span>`
-    : `<span class="cell fail${sel}" title="${title}">✗ ${esc(errText(c.err))} ${src}</span>`;
+  if(k === "ok") return `<span class="cell ok${sel}" title="${title}">✓ ${ms(c.rtt)} ${src}</span>`;
+  return `<span class="cell ${k}${sel}" title="${title}">${k === "slow" ? "⏱" : "✗"} ${esc(errText(c.err))} ${src}</span>`;
 }
 
 // «Ресурсы» в карточке узла: отслеживаемые и до трёх проблемных сайтов из трафика
@@ -2154,7 +2173,8 @@ function siteMini(g, sum){
     const [txt, cls] = siteStatus(r);
     const sq = g.members.map(m => {
       const c = r.cells[m] || { state: "none" };
-      return `<i class="sq ${c.state === "none" ? "" : c.state}${c.chosen ? " sel" : ""}" title="${esc(cellTitle(m, c))}"></i>`;
+      const k = cellKind(c);
+      return `<i class="sq ${k === "none" ? "" : k}${c.chosen ? " sel" : ""}" title="${esc(cellTitle(m, c))}"></i>`;
     }).join("");
     return `<div class="res-mini__row"><span class="res-mini__name" title="${esc(r.site)}">${r.watched ? "★ " : ""}${esc(r.site)}</span><span>${sq}</span><span class="res-mini__st ${cls}" title="${esc(txt)}">${esc(txt)}</span></div>`;
   }).join("");

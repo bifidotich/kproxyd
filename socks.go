@@ -313,6 +313,7 @@ func pipe(a, b net.Conn) (fromB int64, errB error) {
 type tracked struct {
 	group, outlet string
 	a, b          net.Conn
+	closed        bool // уже закрыто нами, запись удалит обработчик соединения
 }
 
 type ConnTracker struct {
@@ -327,7 +328,7 @@ func (t *ConnTracker) Add(group, outlet string, a, b net.Conn) uint64 {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.next++
-	t.m[t.next] = &tracked{group, outlet, a, b}
+	t.m[t.next] = &tracked{group: group, outlet: outlet, a: a, b: b}
 	return t.next
 }
 
@@ -342,7 +343,9 @@ func (t *ConnTracker) Snapshot() []tracked {
 	defer t.mu.Unlock()
 	res := make([]tracked, 0, len(t.m))
 	for _, x := range t.m {
-		res = append(res, *x)
+		if !x.closed {
+			res = append(res, *x)
+		}
 	}
 	return res
 }
@@ -361,7 +364,8 @@ func (t *ConnTracker) closeIf(match func(*tracked) bool) int {
 	t.mu.Lock()
 	var victims []*tracked
 	for _, x := range t.m {
-		if match(x) {
+		if !x.closed && match(x) {
+			x.closed = true
 			victims = append(victims, x)
 		}
 	}

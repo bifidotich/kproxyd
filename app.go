@@ -512,6 +512,12 @@ func (a *App) evaluate() {
 			gs.Conns++
 		}
 	}
+	down := map[string]bool{}
+	for n, st := range a.outlets {
+		if !st.Enabled || !st.Healthy {
+			down[n] = true
+		}
+	}
 	a.mu.Unlock()
 
 	for _, ch := range changes {
@@ -529,6 +535,54 @@ func (a *App) evaluate() {
 				a.logf("info", "группа %s: закрыто %d соединений через %s", ch.group, n, ch.from)
 			}
 		}
+	}
+
+	// через упавшее или выключенное подключение могут идти и соединения, для которых его выбрал
+	// подбор для сайтов, а не только активное подключение группы: рвём их все, клиенты
+	// переподключатся через рабочие
+	closed := map[string]int{}
+	a.tracker.closeIf(func(x *tracked) bool {
+		if down[x.outlet] {
+			closed[x.outlet]++
+			return true
+		}
+		return false
+	})
+	for n, k := range closed {
+		a.logf("info", "выход %s недоступен: закрыто %d соединений", n, k)
+	}
+}
+
+// closeStale вызывается после изменения конфига: рвёт соединения, которые идут через
+// подключение, убранное из группы или выключенное, или напрямую через провайдера, когда
+// группе это больше не разрешено. Иначе они жили бы до закрытия клиентом и числились
+// на подключении, которого в группе уже нет.
+func (a *App) closeStale(c *Config) {
+	enabled := map[string]bool{}
+	for _, o := range c.Outlets {
+		enabled[o.Name] = o.Enabled
+	}
+	allowed := map[string]map[string]bool{}
+	for _, g := range c.Groups {
+		m := map[string]bool{}
+		for _, n := range g.Members {
+			m[n] = enabled[n]
+		}
+		m["isp"] = g.AllDown == "isp"
+		allowed[g.Name] = m
+	}
+	type key struct{ group, outlet string }
+	closed := map[key]int{}
+	a.tracker.closeIf(func(x *tracked) bool {
+		m, ok := allowed[x.group]
+		if !ok || m[x.outlet] {
+			return false // соединения удалённых групп закрывает reconcileSocks
+		}
+		closed[key{x.group, x.outlet}]++
+		return true
+	})
+	for k, n := range closed {
+		a.logf("info", "группа %s: %s больше не используется — закрыто %d соединений", k.group, k.outlet, n)
 	}
 }
 
@@ -698,6 +752,7 @@ func checkKeenetic(g GroupCfg, rc *RunningConfig) (ifaces, lists []string, ok bo
 // applyConfig вызывается после изменения конфига через веб. Вызывающий держит a.applyMu.
 func (a *App) applyConfig(n *Config) {
 	a.rebuild(n)
+	a.closeStale(n)
 	a.requestInspect()
 	select {
 	case a.probeNow <- struct{}{}:

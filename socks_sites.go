@@ -274,21 +274,31 @@ loop:
 		}
 		return
 	}
+	// выбор для сайта меняется, только если подключения до победителя действительно не сработали;
+	// если они просто ответили позже запасной попытки, сайт остаётся на прежнем подключении
+	choose := win.i == 0
 	for i := 0; i < started; i++ {
+		var failedNow, suspect bool
 		code, ok := failed[i]
-		if !ok {
-			if i >= win.i {
-				continue // победитель или запущенная позже него попытка — о подключении ничего не известно
-			}
-			code = "slow" // стартовала раньше победителя и не успела ответить — тоже неудача
+		switch {
+		case ok:
+			failedNow = i < win.i
+			suspect = a.sites.failure(g.Name, site, order[i].outlet, "t", code, true, ttl, 0)
+		case i < win.i:
+			failedNow, suspect = a.sites.slow(g.Name, site, order[i].outlet, ttl)
+		default:
+			continue // победитель или запущенная позже него попытка — о подключении ничего не известно
 		}
-		if a.sites.failure(g.Name, site, order[i].outlet, "t", code, true, ttl, 0) {
+		if failedNow {
+			choose = true
+		}
+		if suspect {
 			a.logf("warn", "группа %s: через %s подряд не открываются разные сайты — проверяю подключение", g.Name, order[i].outlet)
 			a.probeSoon()
 		}
 	}
 	outlet := order[win.i].outlet
-	a.sites.success(g.Name, site, outlet, "t", win.rtt, ttl, win.i > 0)
+	a.sites.success(g.Name, site, outlet, "t", win.rtt, ttl, win.i > 0, choose)
 
 	rc := win.rc
 	if !waitResp && len(prefix) > 0 {
