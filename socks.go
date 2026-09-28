@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -279,21 +280,23 @@ func dialErrCode(err error) byte {
 // copyBufs — буферы для pipe. 16 КБ вмещают самую большую запись TLS.
 var copyBufs = sync.Pool{New: func() any { b := make([]byte, 16<<10); return &b }}
 
+// Склейка мелких порций из туннеля (см. relay).
+const (
+	coalesceAfter = 64 << 10 // склеиваем только в потоке, который уже передал столько
+	coalesceSmall = 4 << 10  // порция меньше этого считается мелкой
+	coalesceWait  = time.Millisecond
+)
+
 // pipe копирует данные в обе стороны. Когда одна сторона закончила передачу, её FIN передаётся
 // дальше (CloseWrite), а вторая работает, сколько нужно: клиент мог отправить запрос и закрыть
 // запись, а ответ (большой файл) идёт ещё долго. Мёртвого собеседника обнаружит TCP keepalive.
+// b — соединение с сервером: его мелкие порции в большом потоке склеиваются (см. relay).
 // Возвращает, сколько байт пришло от b и чем закончилось их чтение.
-//
-// Копируем обычными read/write через свой буфер, а не splice, который io.Copy выбрал бы сам
-// для пары TCP-сокетов: из туннеля данные приходят пакетами по ~1,4 КБ, и на каждый splice
-// тратит два вызова через промежуточный pipe. На роутере (ядро 4.9, ARM) это вдвое дороже
-// копирования по CPU на вызов, а долгие вызовы ещё и будоражат планировщик Go.
 func pipe(a, b net.Conn) (fromB int64, errB error) {
 	done := make(chan struct{}, 2)
 	cp := func(dst, src net.Conn) {
 		bp := copyBufs.Get().(*[]byte)
-		// обёртки скрывают ReadFrom/WriteTo, иначе io.CopyBuffer всё равно ушёл бы в splice
-		n, err := io.CopyBuffer(struct{ io.Writer }{dst}, struct{ io.Reader }{src}, *bp)
+		n, err := relay(dst, src, *bp, src == b)
 		copyBufs.Put(bp)
 		if src == b {
 			fromB, errB = n, err
@@ -316,6 +319,45 @@ func pipe(a, b net.Conn) (fromB int64, errB error) {
 	a.Close()
 	b.Close()
 	return fromB, errB
+}
+
+// relay копирует src в dst до конца src, как io.Copy, но обычными read/write (без splice).
+//
+// Нагрузку на роутере создаёт число пакетов, а не байтов: некоторые серверы шлют поток порциями
+// по 100–300 байт (на Keenetic видели ~4800 пакетов/с по ~300 Б при 12 Мбит/с), и каждую из них
+// пришлось бы отдельно переслать по loopback в «Клиент прокси» Keenetic, разбудив и его.
+// Поэтому при coalesce мелкая порция посреди большого потока ждёт до ~2 мс, пока подойдут
+// следующие, и уходит вместе с ними одной записью. Начало соединения (рукопожатие TLS,
+// короткие ответы) и крупные порции отправляются сразу.
+func relay(dst, src net.Conn, buf []byte, coalesce bool) (int64, error) {
+	var total int64
+	for {
+		n, err := src.Read(buf)
+		if err == nil && coalesce && total >= coalesceAfter && n < coalesceSmall {
+			time.Sleep(coalesceWait)
+			// дочитываем всё, что пришло за это время; если не пришло ничего — ждём ещё не дольше coalesceWait
+			_ = src.SetReadDeadline(time.Now().Add(coalesceWait))
+			m, e := src.Read(buf[n:])
+			_ = src.SetReadDeadline(time.Time{})
+			n += m
+			if e != nil && !errors.Is(e, os.ErrDeadlineExceeded) {
+				err = e
+			}
+		}
+		if n > 0 {
+			w, werr := dst.Write(buf[:n])
+			total += int64(w)
+			if werr != nil {
+				return total, werr
+			}
+		}
+		if err == io.EOF {
+			return total, nil
+		}
+		if err != nil {
+			return total, err
+		}
+	}
 }
 
 // ---------- учёт соединений ----------
