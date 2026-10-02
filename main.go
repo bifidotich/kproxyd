@@ -46,6 +46,7 @@ func main() {
 
 	app := newApp(store)
 	app.logf("info", "kproxyd %s запущен", version)
+	startPprof()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go app.probeLoop(ctx)
